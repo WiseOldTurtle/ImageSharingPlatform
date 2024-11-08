@@ -30,11 +30,11 @@ image-sharing-platform-case-study/
 │   │   ├── uploadImage/
 │   │   │   ├── index.js              # Function for handling image upload and resizing logic
 │   │   │   └── function.json         # Function configuration
-│   ├── terraform/                    # Terraform files for deploying Static Web App and Functions
-│   │   ├── main.tf                   # Main Terraform file
-│   │   ├── variables.tf              # Terraform variables
-│   │   └── outputs.tf                # Outputs from Terraform
-│   └── azure-pipelines.yml           # Azure DevOps YAML pipeline for CI/CD
+│   └── terraform/                    # Terraform files for deploying Static Web App and Functions
+│       ├── main.tf                   # Terraform configuration for Static Web App
+│       ├── staticwebapp-staticsite.json  # ARM template for app settings
+|       ├── variables.tf              # variables
+│       └── terraform.tfvars          # Variable values
 └── diagrams/                         # Diagrams for architecture and flow explanations
     └── azure-functions-architecture.png  # Diagram for Azure Functions solution
 ```

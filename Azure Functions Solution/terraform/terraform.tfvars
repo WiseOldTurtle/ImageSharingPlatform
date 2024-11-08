@@ -1,0 +1,6 @@
+resource_group_name = "myResourceGroup"
+location            = "East US"
+swa_name            = "myStaticWebApp"
+swa_sku_tier        = "Free"
+app_setting1        = "SettingValue1"
+app_setting2        = "SettingValue2"

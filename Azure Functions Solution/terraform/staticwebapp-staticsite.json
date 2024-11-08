@@ -1,0 +1,27 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "staticSiteName": {
+        "type": "string"
+      },
+      "appSetting1": {
+        "type": "string"
+      },
+      "appSetting2": {
+        "type": "string"
+      }
+    },
+    "resources": [
+      {
+        "type": "Microsoft.Web/staticSites/config",
+        "apiVersion": "2020-10-01",
+        "name": "[concat(parameters('staticSiteName'), '/appsettings')]",
+        "properties": {
+          "APP_SETTING1": "[parameters('appSetting1')]",
+          "APP_SETTING2": "[parameters('appSetting2')]"
+        }
+      }
+    ]
+  }
+  
