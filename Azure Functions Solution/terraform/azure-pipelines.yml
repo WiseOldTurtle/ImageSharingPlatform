@@ -118,11 +118,11 @@ stages:
       - job: DeployResources
         displayName: 'Deploy Core Resources'
         steps:
-          # Install Terraform
-          - task: TerraformInstaller@0
-            displayName: 'Install Terraform'
-            inputs:
-              terraformVersion: 'latest'
+          # # Install Terraform
+          # - task: TerraformInstaller@0
+          #   displayName: 'Install Terraform'
+          #   inputs:
+          #     terraformVersion: 'latest'
 
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
