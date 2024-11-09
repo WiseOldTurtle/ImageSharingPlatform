@@ -45,7 +45,7 @@ stages:
             inputs:
               script: |
                 mkdir -p trivy-reports  # Create a directory to store scan results
-                for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
+                for file in $(find '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform' -name "*.tf"); do
                 trivy config --severity LOW,MEDIUM --exit-code 0 --format json --output trivy-reports/$(basename $file)_lowmed.json "$file"
                 done
 
@@ -54,7 +54,7 @@ stages:
             displayName: 'HIGH/CRIT - Trivy vulnerability scanner in IaC mode for Terraform files'
             inputs:
               script: |
-                for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
+                for file in $(find '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform' -name "*.tf"); do
                 trivy config --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-reports/$(basename $file)_highcrit.json "$file"
                 done
 
@@ -119,14 +119,14 @@ stages:
         displayName: 'Deploy Core Resources'
         steps:
           # Install Terraform
-          - task: TerraformInstaller@0
+          - task: TerraformInstaller@1
             displayName: install terraform
             inputs:
               terraformVersion: latest
 
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
                 provider: 'azurerm'
@@ -138,7 +138,7 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
 
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Plan (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Plan'))
               inputs:
@@ -147,7 +147,7 @@ stages:
                 workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
             
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Apply (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Apply'))
               inputs:
@@ -162,14 +162,14 @@ stages:
       - job: terraform_destroy
         displayName: 'Destroy Resources'
         steps:
-          - task: TerraformInstaller@0
+          - task: TerraformInstaller@1
             displayName: 'Install Terraform'
             inputs:
               terraformVersion: 'latest'
           
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
                 provider: 'azurerm'
@@ -181,7 +181,7 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
 
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Destroy (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Destroy'))
               inputs:
