@@ -118,15 +118,15 @@ stages:
       - job: DeployResources
         displayName: 'Deploy Core Resources'
         steps:
-          # # Install Terraform
-          # - task: TerraformInstaller@0
-          #   displayName: 'Install Terraform'
-          #   inputs:
-          #     terraformVersion: 'latest'
+          # Install Terraform
+          - task: TerraformInstaller@0
+            displayName: install terraform
+            inputs:
+              terraformVersion: latest
 
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            - task: TerraformTaskV4@4
+            - task: TerraformTaskV2@2
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
                 provider: 'azurerm'
@@ -138,22 +138,22 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
 
-            - task: TerraformTaskV4@4
+            - task: TerraformTaskV2@2
               displayName: 'Terraform Plan (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Plan'))
               inputs:
                 provider: 'azurerm'
                 command: 'plan'
-                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
             
-            - task: TerraformTaskV4@4
+            - task: TerraformTaskV2@2
               displayName: 'Terraform Apply (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Apply'))
               inputs:
                 provider: 'azurerm'
                 command: 'apply'
-                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
 
   - stage: terraform_destroy
@@ -169,7 +169,7 @@ stages:
           
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            - task: TerraformTaskV4@4
+            - task: TerraformTaskV2@2
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
                 provider: 'azurerm'
@@ -179,14 +179,14 @@ stages:
                 backendAzureRmStorageAccountName: $(backendStorageAccountName)
                 backendAzureRmContainerName: $(backendContainerName)
                 backendAzureRmKey: '${{ dir }}.tfstate'
-                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
 
-            - task: TerraformTaskV4@4
+            - task: TerraformTaskV2@2
               displayName: 'Terraform Destroy (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Destroy'))
               inputs:
                 provider: 'azurerm'
                 command: 'destroy'
                 backendAzureRmKey: '${{ dir }}.tfstate'
-                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
