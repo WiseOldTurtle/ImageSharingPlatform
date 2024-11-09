@@ -45,7 +45,7 @@ stages:
             inputs:
               script: |
                 mkdir -p trivy-reports  # Create a directory to store scan results
-                for file in $(find '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform' -name "*.tf"); do
+                for file in $(find "$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform" -name "*.tf"); do
                 trivy config --severity LOW,MEDIUM --exit-code 0 --format json --output trivy-reports/$(basename $file)_lowmed.json "$file"
                 done
 
@@ -54,7 +54,7 @@ stages:
             displayName: 'HIGH/CRIT - Trivy vulnerability scanner in IaC mode for Terraform files'
             inputs:
               script: |
-                for file in $(find '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform' -name "*.tf"); do
+                for file in $(find "$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform" -name "*.tf"); do
                 trivy config --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-reports/$(basename $file)_highcrit.json "$file"
                 done
 
@@ -136,7 +136,7 @@ stages:
                 backendAzureRmStorageAccountName: $(backendStorageAccountName)
                 backendAzureRmContainerName: $(backendContainerName)
                 backendAzureRmKey: '${{ dir }}.tfstate'
-                workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
+                workingDirectory: '$(System.DefaultWorkingDirectory)/Azure Functions Solution/terraform/${{ dir }}'
 
             - task: TerraformTaskV4@4
               displayName: 'Terraform Plan (${{ dir }})'
