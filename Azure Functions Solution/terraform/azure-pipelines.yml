@@ -126,7 +126,7 @@ stages:
 
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
                 provider: 'azurerm'
@@ -138,7 +138,7 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
 
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Plan (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Plan'))
               inputs:
@@ -147,7 +147,7 @@ stages:
                 workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
             
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Apply (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Apply'))
               inputs:
@@ -169,7 +169,7 @@ stages:
           
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
                 provider: 'azurerm'
@@ -181,7 +181,7 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/terraform/${{ dir }}'
 
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: 'Terraform Destroy (${{ dir }})'
               condition: and(succeeded(), eq(variables['Action'], 'Destroy'))
               inputs:
