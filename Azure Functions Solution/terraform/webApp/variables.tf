@@ -1,35 +1,21 @@
-variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
-  default     ="rg-webApp-wotlab01"
+variable "storage_connection_string" {
+  type = string
 }
 
-variable "location" {
-  description = "Resource location"
-  type        = string
-  default     ="UK South"
+variable "image_resolution" {
+  type    = string
+  default = "300x300,600x600,1200x1200"  # Example values
 }
 
-variable "swa_name" {
-  description = "Name of the Static Web App"
-  type        = string
-  default     ="PLACEHOLDER"
+variable "link_shortener_api_key" {
+  type = string
 }
 
-variable "swa_sku_tier" {
-  description = "SKU tier for Static Web App"
-  type        = string
-  default     ="PLACEHOLDER"
+variable "auth_secret" {
+  type = string
 }
 
-variable "app_setting1" {
-  description = "Custom app setting 1"
-  type        = string
-  default     ="PLACEHOLDER"
-}
-
-variable "app_setting2" {
-  description = "Custom app setting 2"
-  type        = string
-  default     ="PLACEHOLDER"
+variable "log_level" {
+  type    = string
+  default = "info"  # Example log level
 }

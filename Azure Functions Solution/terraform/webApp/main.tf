@@ -6,41 +6,57 @@ terraform {
     }
   }
   backend "azurerm" {
-      resource_group_name  = "tfstate"
-      storage_account_name = "terraformstateprojwot1"
-      container_name       = "tfstate"
-      key                  = "webApp.tfstate"
+    resource_group_name  = "tfstate"
+    storage_account_name = "terraformstateprojwot1"
+    container_name       = "tfstate"
+    key                  = "webApp.tfstate"
   }
 }
 
-resource "azurerm_resource_group" "imageUpload" {
-  name     = var.resource_group_name
-  location = var.location
+provider "azurerm" {
+  features {}
 }
 
+# Data source to reference the management state and get the storage connection string
+data "terraform_remote_state" "management" {
+  backend = "azurerm"
+  config = {
+    resource_group_name   = "tfstate"
+    storage_account_name  = "terraformstateprojwot1"
+    container_name        = "tfstate"
+    key                    = "management.tfstate"  # Ensure the correct path to the management tfstate
+  }
+}
+
+# Resource group definition
+resource "azurerm_resource_group" "webapp_rg" {
+  name     = "rg-webapp-wotlab01"
+  location = "UK South"
+}
+
+# Static Web App deployment
 resource "azurerm_static_site" "frontend" {
-  name                = var.swa_name
-  resource_group_name = data.azurerm_resource_group.rg.name
-  location            = var.location
-  sku_tier            = var.swa_sku_tier
+  name                = "frontend-webapp"
+  resource_group_name = azurerm_resource_group.webapp_rg.name
+  location            = azurerm_resource_group.webapp_rg.location
+  sku_tier            = "Free"  # For cost-effective solution
 }
 
+# ARM Template deployment reference (terraform module workaround)
 resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
+  name                = "frontend-appsettings-deployment"
+  resource_group_name = azurerm_resource_group.webapp_rg.name
   deployment_mode     = "Incremental"
-  name                = "frontend-appsettings"
-  resource_group_name = data.azurerm_resource_group.rg.name
 
-  template_content = file("staticwebapp-arm-staticsite-config.json")
-  
+  # Reference the ARM template file (staticwebapp-arm-staticsite-config.json)
+  template_content = file("${path.module}/staticwebapp-arm-staticsite-config.json")
+
   parameters_content = jsonencode({
-    staticSiteName = {
-      value = azurerm_static_site.frontend.name
-    },
-    appSetting1 = {
-      value = var.app_setting1
-    },
-    appSetting2 = {
-      value = var.app_setting2
-    }
+    staticSiteName         = { value = azurerm_static_site.frontend.name }
+    storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }  # Pull from management state file
+    imageResolution         = { value = var.image_resolution }
+    linkShortenerApiKey     = { value = var.link_shortener_api_key }
+    authSecret              = { value = var.auth_secret }
+    logLevel                = { value = var.log_level }
   })
 }
