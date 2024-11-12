@@ -9,7 +9,7 @@ terraform {
     resource_group_name  = "tfstate"
     storage_account_name = "terraformstateprojwot1"
     container_name       = "tfstate"
-    key                  = "webApp.tfstate"
+    key                  = "webapp.tfstate"
   }
 }
 
@@ -44,7 +44,7 @@ resource "azurerm_static_site" "frontend" {
 
 # ARM Template deployment reference (terraform module workaround)
 resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
-  name                = "frontend-appsettings-deployment"
+  name                = "frontend-webapp-casestudy"
   resource_group_name = azurerm_resource_group.webapp_rg.name
   deployment_mode     = "Incremental"
 
