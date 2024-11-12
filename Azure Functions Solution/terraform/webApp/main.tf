@@ -13,6 +13,10 @@ terraform {
   }
 }
 
+provider "azurerm" {
+  features {}
+}
+
 # Data source to reference the management state and get the storage connection string
 data "terraform_remote_state" "management" {
   backend = "azurerm"
