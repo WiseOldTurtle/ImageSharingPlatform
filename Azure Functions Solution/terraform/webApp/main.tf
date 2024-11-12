@@ -13,10 +13,6 @@ terraform {
   }
 }
 
-provider "azurerm" {
-  features {}
-}
-
 # Data source to reference the management state and get the storage connection string
 data "terraform_remote_state" "management" {
   backend = "azurerm"
@@ -24,7 +20,7 @@ data "terraform_remote_state" "management" {
     resource_group_name   = "tfstate"
     storage_account_name  = "terraformstateprojwot1"
     container_name        = "tfstate"
-    key                    = "management.tfstate"  # Ensure the correct path to the management tfstate
+    key                   = "management.tfstate"  # Ensure the correct path to the management tfstate
   }
 }
 
