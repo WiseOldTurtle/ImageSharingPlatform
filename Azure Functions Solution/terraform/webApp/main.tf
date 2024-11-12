@@ -52,11 +52,11 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   template_content = file("${path.module}/staticwebapp-arm-staticsite-config.json")
 
   parameters_content = jsonencode({
-    staticSiteName         = { value = azurerm_static_site.frontend.name }
+    staticSiteName          = { value = azurerm_static_site.frontend.name }
     storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }  # Pull from management state file
     imageResolution         = { value = var.image_resolution }
-    linkShortenerApiKey     = { value = var.link_shortener_api_key }
-    authSecret              = { value = var.auth_secret }
+    # linkShortenerApiKey     = { value = var.link_shortener_api_key }
+    # authSecret              = { value = var.auth_secret }
     logLevel                = { value = var.log_level }
   })
 }
