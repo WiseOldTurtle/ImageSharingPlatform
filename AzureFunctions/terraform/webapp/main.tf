@@ -48,8 +48,8 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   resource_group_name = azurerm_resource_group.webapp_rg.name
   deployment_mode     = "Incremental"
 
-  # Reference the ARM template file (staticwebapp-arm-staticsite-config.json)
-  template_content = file("${path.module}/AzureFunctions/terraform/webapp/staticwebapp-arm-staticsite-config.json")
+  # Reference the ARM template file 
+  template_content = file("${path.module}/staticwebapp-staticsite.json")
 
   parameters_content = jsonencode({
     staticSiteName          = { value = azurerm_static_site.frontend.name }
