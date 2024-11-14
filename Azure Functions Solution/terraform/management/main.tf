@@ -35,4 +35,5 @@ resource "azurerm_storage_account" "webappstore" {
 # Output the Storage Account Connection String
 output "storage_account_connection_string" {
   value = azurerm_storage_account.webappstore.primary_connection_string
+  sensitive = true
 }
