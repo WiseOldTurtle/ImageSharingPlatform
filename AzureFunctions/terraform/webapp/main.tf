@@ -60,3 +60,50 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
     logLevel                = { value = var.log_level }
   })
 }
+
+# Function App Plan (Consumption Plan)
+resource "azurerm_function_app_plan" "function_plan" {
+  name                     = "function-app-plan"
+  location                 = azurerm_resource_group.webapp_rg.location
+  resource_group_name      = azurerm_resource_group.webapp_rg.name
+  kind                     = "FunctionApp"
+  sku {
+    tier = "Dynamic"  # Consumption Plan
+    size = "Y1"       # For cost-effective hosting
+  }
+}
+
+# Function App Resource
+resource "azurerm_function_app" "function_app" {
+  name                      = "frontend-function-app"
+  location                  = azurerm_resource_group.webapp_rg.location
+  resource_group_name       = azurerm_resource_group.webapp_rg.name
+  app_service_plan_id       = azurerm_function_app_plan.function_plan.id
+  storage_account_name     = azurerm_storage_account.webappstore.name
+  storage_account_access_key = azurerm_storage_account.webappstore.primary_access_key
+  os_type                   = "Linux"
+  version                   = "~3"
+
+  site_config {
+    linux_fx_version = "NODE|14"  
+  }
+
+  app_settings = {
+    "FUNCTIONS_WORKER_RUNTIME" = "node"
+    "AzureWebJobsStorage" = azurerm_storage_account.webappstore.primary_connection_string
+  }
+}
+
+data "azurerm_key_vault_secret" "github_token" {
+  name         = "github-token"
+  key_vault_id = azurerm_key_vault.kvCaseStudy.id 
+}
+
+# Link GitHub Repository to Function App
+resource "azurerm_function_app_source_control" "github" {
+  function_app_id  = azurerm_function_app.function_app.id
+  repo_url         = "https://github.com/WiseOldTurtle/ImageSharingPlatform"
+  branch           = "main" 
+  repo_token       = data.azurerm_key_vault_secret.github_token.value
+}
+

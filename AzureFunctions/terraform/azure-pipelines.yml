@@ -136,6 +136,8 @@ stages:
                 backendAzureRmContainerName: $(backendContainerName)
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
+                env:
+                  TF_VAR_github_token: $(github_token)
 
             - task: TerraformTaskV4@4
               displayName: 'Terraform Plan (${{ dir }})'
@@ -145,6 +147,8 @@ stages:
                 command: 'plan'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
+                env:
+                  TF_VAR_github_token: $(github_token)
             
             - task: TerraformTaskV4@4
               displayName: 'Terraform Apply (${{ dir }})'
@@ -154,6 +158,8 @@ stages:
                 command: 'apply'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
+                env:
+                  TF_VAR_github_token: $(github_token)
 
   - stage: terraform_destroy
     condition: eq('${{ parameters.Action }}', 'Destroy')
@@ -179,6 +185,8 @@ stages:
                 backendAzureRmContainerName: $(backendContainerName)
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
+                env:
+                  TF_VAR_github_token: $(github_token)
 
             - task: TerraformTaskV4@4
               displayName: 'Terraform Destroy (${{ dir }})'
@@ -189,3 +197,5 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
+                env:
+                  TF_VAR_github_token: $(github_token)

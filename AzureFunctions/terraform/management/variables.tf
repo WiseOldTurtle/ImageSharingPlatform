@@ -15,3 +15,9 @@ variable "storage_account_name" {
   type        = string
   default     = "webappstorebackendcs"
 }
+
+variable "github_token" {
+  description = "GitHub Personal Access Token"
+  type        = string
+}
+
