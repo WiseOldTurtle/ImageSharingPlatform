@@ -11,12 +11,12 @@
     "imageResolution": {
       "type": "string"
     },
-    "linkShortenerApiKey": {
-      "type": "string"
-    },
-    "authSecret": {
-      "type": "string"
-    },
+    // "linkShortenerApiKey": {
+    //   "type": "string"
+    // },
+    // "authSecret": {
+    //   "type": "string"
+    // },
     "logLevel": {
       "type": "string"
     }
@@ -29,8 +29,8 @@
       "properties": {
         "STORAGE_CONNECTION_STRING": "[parameters('storageConnectionString')]",
         "IMAGE_RESOLUTION": "[parameters('imageResolution')]",
-        "LINK_SHORTENER_API_KEY": "[parameters('linkShortenerApiKey')]",
-        "AUTH_SECRET": "[parameters('authSecret')]",
+        // "LINK_SHORTENER_API_KEY": "[parameters('linkShortenerApiKey')]",
+        // "AUTH_SECRET": "[parameters('authSecret')]",
         "LOG_LEVEL": "[parameters('logLevel')]"
       }
     }
