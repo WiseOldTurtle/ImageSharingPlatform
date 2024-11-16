@@ -145,8 +145,8 @@ stages:
                 command: 'plan'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
-              env:
-                GITHUB_ACCESS_TOKEN: $(GITHUB_ACCESS_TOKEN)
+              # env: # TODO. Reference for external 
+              #   GITHUB_ACCESS_TOKEN: $(GITHUB_ACCESS_TOKEN)
             
             - task: TerraformTaskV4@4
               displayName: 'Terraform Apply (${{ dir }})'

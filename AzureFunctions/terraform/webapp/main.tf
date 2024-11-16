@@ -42,7 +42,7 @@ resource "azurerm_static_site" "frontend" {
   sku_tier            = "Free"  # For cost-effective solution
 }
 
-# ARM Template deployment reference (terraform module workaround)
+# ARM Template deployment reference (terraform module workaround) # TODO. Check for other options
 resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   name                = "frontend-webapp-casestudy"
   resource_group_name = azurerm_resource_group.webapp_rg.name
@@ -55,8 +55,8 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
     staticSiteName          = { value = azurerm_static_site.frontend.name }
     storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }  # Pull from management state file
     imageResolution         = { value = var.image_resolution }
-    # linkShortenerApiKey     = { value = var.link_shortener_api_key }
-    # authSecret              = { value = var.auth_secret }
+    # linkShortenerApiKey     = { value = var.link_shortener_api_key } # TODO.
+    # authSecret              = { value = var.auth_secret } # TODO.
     logLevel                = { value = var.log_level }
   })
 }
