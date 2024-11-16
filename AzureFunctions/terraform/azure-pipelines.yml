@@ -19,74 +19,116 @@ variables:
   - group: WiseOldTurtleSP  # Variable group containing SP details
   - group: terraform        # Variable group containing Terraform-related variables
   - name: directories
+<<<<<<< HEAD
     value: "webapp"  # Exclude management from this list
+=======
+    value: "management,networking,webapp"
+>>>>>>> parent of 396faea (updated YAML added management segment to ensure state is created first)
   - name: action
     value: ${{ parameters.Action }}
 
 stages:
-  # Stage to handle the management folder separately
-  - stage: ManagementSetup
-    condition: ne('${{ parameters.Action }}', 'Destroy')  # Skip this stage for destroy
+  - stage: RunTesting
     jobs:
-      - job: RunManagement
-        displayName: 'Run Terraform for Management Folder'
+      - job: RunTrivy
         steps:
-          # Install Terraform
-          - task: TerraformInstaller@1
-            displayName: Install Terraform
+          # Download and Install Trivy
+          - task: CmdLine@2
+            displayName: 'Download and Install Trivy vulnerability scanner'
             inputs:
-              terraformVersion: latest
+              script: |
+                sudo apt-get update
+                sudo apt-get install rpm -y
+                wget https://github.com/aquasecurity/trivy/releases/download/v0.20.0/trivy_0.20.0_Linux-64bit.deb
+                sudo dpkg -i trivy_0.20.0_Linux-64bit.deb
+                trivy -v
 
-          # Terraform Init for Management
-          - task: TerraformTaskV4@4
-            displayName: 'Terraform Init (management)'
+          # Run Trivy for LOW and MEDIUM severity issues
+          - task: CmdLine@2
+            displayName: 'LOW/MED - Trivy vulnerability scanner in IaC mode for Terraform files'
             inputs:
-              provider: 'azurerm'
-              command: 'init'
-              backendServiceArm: 'wiseoldturtle-terraform-sp'
-              backendAzureRmResourceGroupName: $(backendRGName)
-              backendAzureRmStorageAccountName: $(backendStorageAccountName)
-              backendAzureRmContainerName: $(backendContainerName)
-              backendAzureRmKey: 'management.tfstate'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/management'
+              script: |
+                mkdir -p trivy-reports
+                for file in $(find $(System.DefaultWorkingDirectory)/AzureFunctions/terraform -name "*.tf"); do
+                trivy config --severity LOW,MEDIUM --exit-code 0 --format json --output trivy-reports/$(basename $file)_lowmed.json "$file"
+                done
 
-          # Terraform Plan for Management
-          - task: TerraformTaskV4@4
-            displayName: 'Terraform Plan (management)'
-            condition: eq(variables['Action'], 'Plan')
+          # Run Trivy for HIGH and CRITICAL severity issues
+          - task: CmdLine@2
+            displayName: 'HIGH/CRIT - Trivy vulnerability scanner in IaC mode for Terraform files'
             inputs:
-              provider: 'azurerm'
-              command: 'plan'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/management'
-              environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
+              script: |
+                for file in $(find $(System.DefaultWorkingDirectory)/AzureFunctions/terraform -name "*.tf"); do
+                trivy config --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-reports/$(basename $file)_highcrit.json "$file"
+                done
 
-          # Terraform Apply for Management
-          - task: TerraformTaskV4@4
-            displayName: 'Terraform Apply (management)'
-            condition: eq(variables['Action'], 'Apply')
+          # Publish Trivy Scan Results as a Build Artifact
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Trivy scan results as a build artifact'
             inputs:
-              provider: 'azurerm'
-              command: 'apply'
-              workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/management'
-              environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
+              PathtoPublish: 'trivy-reports'
+              ArtifactName: 'TrivyScanResults'
+              publishLocation: 'Container'
 
-  # Stage for remaining directories
-  - stage: DeployRemainingResources
-    dependsOn: ManagementSetup
-    condition: and(ne('${{ parameters.Action }}', 'Destroy'), succeeded())
+  - stage: SetupCore
+    jobs:
+      - job: CreateBackendResources
+        displayName: 'Create AZ Storage Account and Container'
+        steps:
+          # Authenticate using SP in AZ CLI
+          - script: |
+              az login --service-principal \
+                --username $(TF_VAR_client_id) \
+                --password $(TF_VAR_client_secret) \
+                --tenant $(TF_VAR_tenant_id)
+            displayName: 'Azure Login with SP for CLI'
+
+          # Create Resource Group
+          - script: |
+              az group create --name $(backendRGName) --location "UK South"
+            displayName: 'Create Resource Group'
+
+          # Create Storage Account with Private Access
+          - script: |
+              az storage account create \
+                --name $(backendStorageAccountName) \
+                --resource-group $(backendRGName) \
+                --location "UK South" \
+                --sku Standard_LRS \
+                --kind StorageV2 \
+                --access-tier Hot 
+            displayName: 'Create Storage Account'
+
+          # Retrieve Storage Account Key for container creation
+          - script: |
+              ACCOUNT_KEY=$(az storage account keys list --resource-group $(backendRGName) \
+              --account-name $(backendStorageAccountName) --query '[0].value' -o tsv)
+              echo "##vso[task.setvariable variable=ACCOUNT_KEY]$ACCOUNT_KEY"
+              export ARM_ACCESS_KEY=$ACCOUNT_KEY
+            displayName: 'Retrieve Storage Account Key'
+
+          # Create Storage Container using the retrieved key
+          - script: |
+              az storage container create \
+                --name $(backendContainerName) \
+                --account-name $(backendStorageAccountName) \
+                --account-key $(ACCOUNT_KEY)
+            displayName: 'Create Storage Container for Terraform Backend'
+
+  - stage: DeployCoreResources
+    condition: ne('${{ parameters.Action }}', 'Destroy')
     jobs:
       - job: DeployResources
         displayName: 'Deploy Core Resources'
         steps:
           # Install Terraform
           - task: TerraformInstaller@1
-            displayName: Install Terraform
+            displayName: install terraform
             inputs:
               terraformVersion: latest
 
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
-            # Terraform Init
             - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
@@ -99,27 +141,24 @@ stages:
                 backendAzureRmKey: '${{ dir }}.tfstate'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
 
-            # Terraform Plan
             - task: TerraformTaskV4@4
               displayName: 'Terraform Plan (${{ dir }})'
-              condition: eq(variables['Action'], 'Plan')
+              condition: and(succeeded(), eq(variables['Action'], 'Plan'))
               inputs:
                 provider: 'azurerm'
                 command: 'plan'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
-              
-            # Terraform Apply
+            
             - task: TerraformTaskV4@4
               displayName: 'Terraform Apply (${{ dir }})'
-              condition: eq(variables['Action'], 'Apply')
+              condition: and(succeeded(), eq(variables['Action'], 'Apply'))
               inputs:
                 provider: 'azurerm'
                 command: 'apply'
                 workingDirectory: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}'
                 environmentServiceNameAzureRM: 'wiseoldturtle-terraform-sp'
 
-  # Stage to destroy resources
   - stage: terraform_destroy
     condition: eq('${{ parameters.Action }}', 'Destroy')
     jobs:
@@ -131,8 +170,13 @@ stages:
             inputs:
               terraformVersion: 'latest'
           
+<<<<<<< HEAD
           # Loop through directories (including management)
           - ${{ each dir in 'management,webapp'.split(',') }}:
+=======
+          # Loop through directories
+          - ${{ each dir in split(variables.directories, ',') }}:
+>>>>>>> parent of 396faea (updated YAML added management segment to ensure state is created first)
             - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
@@ -147,7 +191,7 @@ stages:
 
             - task: TerraformTaskV4@4
               displayName: 'Terraform Destroy (${{ dir }})'
-              condition: eq(variables['Action'], 'Destroy')
+              condition: and(succeeded(), eq(variables['Action'], 'Destroy'))
               inputs:
                 provider: 'azurerm'
                 command: 'destroy'
