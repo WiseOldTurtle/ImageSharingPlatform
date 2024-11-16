@@ -31,7 +31,7 @@ data "terraform_remote_state" "management" {
 # Resource group definition
 resource "azurerm_resource_group" "webapp_rg" {
   name     = "rg-webapp-wotlab01"
-  location = "UK South"
+  location = "westeurope"
 }
 
 # Static Web App deployment
