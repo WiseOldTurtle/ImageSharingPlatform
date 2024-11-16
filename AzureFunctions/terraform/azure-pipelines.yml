@@ -19,11 +19,7 @@ variables:
   - group: WiseOldTurtleSP  # Variable group containing SP details
   - group: terraform        # Variable group containing Terraform-related variables
   - name: directories
-<<<<<<< HEAD
-    value: "webapp"  # Exclude management from this list
-=======
-    value: "management,networking,webapp"
->>>>>>> parent of 396faea (updated YAML added management segment to ensure state is created first)
+    value: "management,webapp"
   - name: action
     value: ${{ parameters.Action }}
 
@@ -170,13 +166,8 @@ stages:
             inputs:
               terraformVersion: 'latest'
           
-<<<<<<< HEAD
-          # Loop through directories (including management)
-          - ${{ each dir in 'management,webapp'.split(',') }}:
-=======
           # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
->>>>>>> parent of 396faea (updated YAML added management segment to ensure state is created first)
             - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
