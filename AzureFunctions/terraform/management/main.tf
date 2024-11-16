@@ -53,7 +53,7 @@ resource "azurerm_key_vault" "kv-wotlab01" {
 # Store GitHub token in Key Vault
 resource "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
-  value        = var.github_token  # externally reference for security
+  value        = var.github_access_token  # externally reference for security
   key_vault_id = azurerm_key_vault.kv-wotlab01.id
 }
 
