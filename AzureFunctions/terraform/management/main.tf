@@ -33,7 +33,7 @@ resource "azurerm_storage_account" "webappstore" {
 }
 
 # Create Key Vault
-resource "azurerm_key_vault" "kvCaseStudy" {
+resource "azurerm_key_vault" "kv-wotlab01" {
   name                = "kv-wotlab01"
   location            = azurerm_resource_group.webapp_rg.location
   resource_group_name = azurerm_resource_group.webapp_rg.name
@@ -54,7 +54,7 @@ resource "azurerm_key_vault" "kvCaseStudy" {
 resource "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
   value        = var.github_token  # externally reference for security
-  key_vault_id = azurerm_key_vault.kvCaseStudy.id
+  key_vault_id = azurerm_key_vault.kv-wotlab01.id
 }
 
 # Output the secret URI

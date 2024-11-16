@@ -98,7 +98,7 @@ resource "azurerm_function_app" "function_app" {
 # Data source for GitHub token from Key Vault
 data "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
-  key_vault_id = azurerm_key_vault.kvCaseStudy.id 
+  key_vault_id = azurerm_key_vault.kv-wotlab01.id 
 }
 
 # Link GitHub Repository to Function App
