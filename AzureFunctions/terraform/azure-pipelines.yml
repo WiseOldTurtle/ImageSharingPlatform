@@ -19,7 +19,7 @@ variables:
   - group: WiseOldTurtleSP  # Variable group containing SP details
   - group: terraform        # Variable group containing Terraform-related variables
   - name: directories
-    value: "networking,webapp"  # Exclude management from this list
+    value: "webapp"  # Exclude management from this list
   - name: action
     value: ${{ parameters.Action }}
 
@@ -132,7 +132,7 @@ stages:
               terraformVersion: 'latest'
           
           # Loop through directories (including management)
-          - ${{ each dir in 'management,networking,webapp'.split(',') }}:
+          - ${{ each dir in 'management,webapp'.split(',') }}:
             - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
               inputs:
