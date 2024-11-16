@@ -62,8 +62,6 @@ output "github_token_secret_id" {
   value = azurerm_key_vault_secret.github_token.id
 }
 
-
-
 # Output the Storage Account Connection String
 output "storage_account_connection_string" {
   value = azurerm_storage_account.webappstore.primary_connection_string

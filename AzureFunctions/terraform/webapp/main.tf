@@ -91,9 +91,11 @@ resource "azurerm_function_app" "function_app" {
   app_settings = {
     "FUNCTIONS_WORKER_RUNTIME" = "node"
     "AzureWebJobsStorage" = azurerm_storage_account.webappstore.primary_connection_string
+    "GITHUB_TOKEN" = data.azurerm_key_vault_secret.github_token.value  # Referencing the GitHub token from Key Vault
   }
 }
 
+# Data source for GitHub token from Key Vault
 data "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
   key_vault_id = azurerm_key_vault.kvCaseStudy.id 
@@ -104,6 +106,5 @@ resource "azurerm_function_app_source_control" "github" {
   function_app_id  = azurerm_function_app.function_app.id
   repo_url         = "https://github.com/WiseOldTurtle/ImageSharingPlatform"
   branch           = "main" 
-  repo_token       = data.azurerm_key_vault_secret.github_token.value
+  repo_token       = data.azurerm_key_vault_secret.github_token.value  # Use the GitHub token from Key Vault
 }
-
