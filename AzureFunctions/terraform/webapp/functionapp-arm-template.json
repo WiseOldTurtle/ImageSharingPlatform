@@ -22,7 +22,7 @@
       "location": "[parameters('location')]",
       "properties": {
         "name": "[parameters('functionAppName')]",
-        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppPlanName'))]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', '/', parameters('functionAppPlanName'))]",
         "siteConfig": {
           "appSettings": [
             {
@@ -52,7 +52,7 @@
         "repoToken": "[reference(parameters('githubToken'), '2015-01-01', 'Full').value]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+        "[resourceId('Microsoft.Web/sites', '/', parameters('functionAppName'))]"
       ]
     }
   ],
