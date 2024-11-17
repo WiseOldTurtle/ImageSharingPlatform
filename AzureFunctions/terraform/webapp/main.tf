@@ -80,7 +80,7 @@ resource "azurerm_resource_group_template_deployment" "function_app_deployment" 
     functionAppName         = { value = "frontend-function-app" }
     location                = { value = azurerm_resource_group.webapp_rg.location }
     storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }
-    githubToken             = { value = data.terraform_remote_state.management.outputs.azurerm_key_vault_secret.github_token}
+    githubToken             = { value = data.terraform_remote_state.management.azurerm_key_vault_secret.github_token.value}
   })
 }
 
