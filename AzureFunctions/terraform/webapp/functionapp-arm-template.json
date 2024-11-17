@@ -3,11 +3,12 @@
   "contentVersion": "1.0.0.0",
   "resources": [
     {
+      "name": "serverfarm-wotlab01",
       "type": "Microsoft.Web/serverfarms",
       "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
       "properties": {
-        "name": "[parameters('functionAppPlanName')]",
+        "name": "function-app-plan",
         "sku": {
           "tier": "Dynamic",
           "name": "Y1"
@@ -15,6 +16,7 @@
       }
     },
     {
+      "name": "sites-wotlab01",
       "type": "Microsoft.Web/sites",
       "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
@@ -36,6 +38,7 @@
       }
     },
     {
+      "name": "sourcecontrol-wotlab01",
       "type": "Microsoft.Web/sites/sourcecontrols",
       "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
@@ -61,6 +64,9 @@
       "type": "string"
     },
     "location": {
+      "type": "string"
+    },
+    "githubToken": {
       "type": "string"
     },
     "storageConnectionString": {

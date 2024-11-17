@@ -34,6 +34,12 @@ resource "azurerm_resource_group" "webapp_rg" {
   location = "westeurope"
 }
 
+# Data source for GitHub token from Key Vault
+data "azurerm_key_vault_secret" "github_token" {
+  name         = "github-token"
+  key_vault_id = data.terraform_remote_state.management.outputs.key_vault_id
+}
+
 # Static Web App deployment
 resource "azurerm_static_site" "frontend" {
   name                = "frontend-webapp"
@@ -68,18 +74,14 @@ resource "azurerm_resource_group_template_deployment" "function_app_deployment" 
   # Reference the ARM template file # TODO. replace hardcoded filepath with $path.module 
   template_content = file("functionapp-arm-template.json")
 
+  # TODO. remove hardcoded values and reference through params
   parameters_content = jsonencode({
     functionAppPlanName     = { value = "function-app-plan" }
     functionAppName         = { value = "frontend-function-app" }
     location                = { value = azurerm_resource_group.webapp_rg.location }
     storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }
+    githubToken             = { value = data.terraform_remote_state.management.outputs.azurerm_key_vault_secret.github_token}
   })
-}
-
-# Data source for GitHub token from Key Vault
-data "azurerm_key_vault_secret" "github_token" {
-  name         = "github-token"
-  key_vault_id = data.terraform_remote_state.management.outputs.key_vault_id
 }
 
 output "management_outputs" {
