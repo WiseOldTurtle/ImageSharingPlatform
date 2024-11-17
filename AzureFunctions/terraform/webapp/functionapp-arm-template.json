@@ -49,7 +49,7 @@
         "deploymentRollbackEnabled": true,
         "isManualIntegration": true,
         "deploymentMethod": "GitHub",
-        "repoToken": "[parameters('githubToken')]"
+        "repoToken": "[reference(parameters('githubTokenSecretUri'), '2015-01-01', 'Full').value]"
       },
       "dependsOn": [
         "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
@@ -66,8 +66,8 @@
     "location": {
       "type": "string"
     },
-    "githubToken": {
-      "type": "string"
+    "githubTokenSecretUri": {
+    "type": "string"
     },
     "storageConnectionString": {
       "type": "string"
