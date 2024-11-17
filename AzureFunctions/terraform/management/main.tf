@@ -77,7 +77,7 @@ resource "azurerm_key_vault" "kv-wotlab01" {
 # Store GitHub token in Key Vault  # TODO. Update with TFVars and ADO Variable
 resource "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
-  value        = "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"  # TODO. reference through ADO Variable 
+  value        = "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"  
   key_vault_id = azurerm_key_vault.kv-wotlab01.id
 
 # added lifecycle so it doesnt clash and error saying secret already exists. 
