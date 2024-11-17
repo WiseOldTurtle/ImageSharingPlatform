@@ -1,18 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Image Upload Platform</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Sharing Platform</title>
 </head>
 <body>
-  <h1>Upload an Image</h1>
-  <form id="uploadForm" enctype="multipart/form-data">
-    <input type="file" id="imageFile" accept="image/*" required>
-    <button type="button" onclick="uploadImage()">Upload</button>
-  </form>
+    <h1>Image Sharing Platform</h1>
+    <form id="uploadForm">
+        <input type="file" id="imageFile" accept="image/*" required />
+        <button type="submit">Upload Image</button>
+    </form>
+    <div id="links"></div>
+    <script>
+        document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const file = document.getElementById("imageFile").files[0];
+            if (!file) return;
 
-  <script src="script.js"></script>
+            const formData = new FormData();
+            formData.append("image", file);
+
+            const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const linksDiv = document.getElementById("links");
+                linksDiv.innerHTML = `
+                    <h3>Image Links:</h3>
+                    <ul>
+                        ${data.links
+                            .map((link) => `<li><a href="${link}" target="_blank">${link}</a></li>`)
+                            .join("")}
+                    </ul>`;
+            } else {
+                alert("Failed to upload image");
+            }
+        });
+    </script>
 </body>
 </html>
