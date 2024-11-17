@@ -1,46 +1,70 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
-    "resources": [
-      {
-        "type": "Microsoft.Web/serverFarms",
-        "apiVersion": "2021-02-01",
-        "location": "[parameters('location')]",
-        "properties": {
-          "name": "[parameters('functionAppPlanName')]",
-          "sku": {
-            "Tier": "Dynamic",
-            "Name": "Y1"
-          }
-        }
-      },
-      {
-        "type": "Microsoft.Web/sites",
-        "apiVersion": "2021-02-01",
-        "location": "[parameters('location')]",
-        "dependsOn": [
-          "[resourceId('Microsoft.Web/serverFarms', parameters('functionAppPlanName'))]"
-        ],
-        "properties": {
-          "name": "[parameters('functionAppName')]",
-          "serverFarmId": "[resourceId('Microsoft.Web/serverFarms', parameters('functionAppPlanName'))]",
-          "siteConfig": {
-            "linuxFxVersion": "NODE|14"
-          }
+  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2021-02-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "name": "[parameters('functionAppPlanName')]",
+        "sku": {
+          "tier": "Dynamic",
+          "name": "Y1"
         }
       }
-    ],
-    "parameters": {
-      "location": {
-        "type": "string",
-        "defaultValue": "westeurope"
-      },
-      "functionAppPlanName": {
-        "type": "string"
-      },
-      "functionAppName": {
-        "type": "string"
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2021-02-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "name": "[parameters('functionAppName')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('functionAppPlanName'))]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "node"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[parameters('storageConnectionString')]"
+            }
+          ]
+        }
       }
+    },
+    {
+      "type": "Microsoft.Web/sites/sourcecontrols",
+      "apiVersion": "2021-02-01",
+      "location": "[parameters('location')]",
+      "properties": {
+        "repoUrl": "https://github.com/WiseOldTurtle/ImageSharingPlatform",
+        "branch": "main",
+        "manualIntegration": true,
+        "deploymentRollbackEnabled": true,
+        "isManualIntegration": true,
+        "deploymentMethod": "GitHub",
+        "repoToken": "[parameters('githubToken')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
+      ]
+    }
+  ],
+  "parameters": {
+    "functionAppPlanName": {
+      "type": "string"
+    },
+    "functionAppName": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "storageConnectionString": {
+      "type": "string"
     }
   }
-  
+}

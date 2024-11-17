@@ -59,7 +59,6 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   })
 }
 
-# Deploy Function App using ARM Template
 resource "azurerm_resource_group_template_deployment" "function_app_deployment" {
   name                = "function-app-deployment"
   resource_group_name = azurerm_resource_group.webapp_rg.name
@@ -69,22 +68,16 @@ resource "azurerm_resource_group_template_deployment" "function_app_deployment" 
   template_content = file("${path.module}/functionapp-arm-template.json")
 
   parameters_content = jsonencode({
-    functionAppPlanName = { value = "function-app-plan" }
-    functionAppName     = { value = "frontend-function-app" }
-    location            = { value = azurerm_resource_group.webapp_rg.location }
+    functionAppPlanName     = { value = "function-app-plan" }
+    functionAppName         = { value = "frontend-function-app" }
+    location                = { value = azurerm_resource_group.webapp_rg.location }
+    storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }
   })
 }
+
 
 # Data source for GitHub token from Key Vault
 data "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
   key_vault_id = data.terraform_remote_state.management.outputs.key_vault_id
-}
-
-# Link GitHub Repository to Function App - Updated to use Linux Function App Source Control
-resource "azurerm_linux_function_app_source_control" "github" {
-  function_app_id  = azurerm_linux_function_app.function_app.id
-  repo_url         = "https://github.com/WiseOldTurtle/ImageSharingPlatform"
-  branch           = "main"
-  repo_token       = data.azurerm_key_vault_secret.github_token.value
 }
