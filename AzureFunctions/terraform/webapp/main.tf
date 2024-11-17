@@ -42,14 +42,14 @@ resource "azurerm_static_site" "frontend" {
   sku_tier            = "Free"  # For cost-effective solution
 }
 
-# ARM Template deployment reference (terraform module workaround)
+# ARM Template deployment reference (terraform module workaround) 
 resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   name                = "frontend-webapp-casestudy"
   resource_group_name = azurerm_resource_group.webapp_rg.name
   deployment_mode     = "Incremental"
 
-  # Reference the ARM template file
-  template_content = file("${path.module}/staticwebapp-staticsite.json")
+  # Reference the ARM template file # TODO. replace hardcoded filepath with $path.module 
+  template_content = file("staticwebapp-staticsite.json")
 
   parameters_content = jsonencode({
     staticSiteName          = { value = azurerm_static_site.frontend.name }
@@ -64,8 +64,8 @@ resource "azurerm_resource_group_template_deployment" "function_app_deployment" 
   resource_group_name = azurerm_resource_group.webapp_rg.name
   deployment_mode     = "Incremental"
 
-  # Reference the ARM template file
-  template_content = file("${path.module}/functionapp-arm-template.json")
+  # Reference the ARM template file # TODO. replace hardcoded filepath with $path.module 
+  template_content = file("functionapp-arm-template.json")
 
   parameters_content = jsonencode({
     functionAppPlanName     = { value = "function-app-plan" }

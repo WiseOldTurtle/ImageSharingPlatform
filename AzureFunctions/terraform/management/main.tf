@@ -29,6 +29,7 @@ resource "random_id" "unique_id" {
   byte_length = 8
 }
 
+
 resource "azurerm_storage_account" "image_storage" {
   name                     = "imagestorage${lower(substr(random_id.unique_id.hex, 0, 10))}"
   resource_group_name      = azurerm_resource_group.imagesRG.name
@@ -44,7 +45,7 @@ resource "azurerm_storage_container" "images" {
   container_access_type = "blob"
 }
 
-# Create Key Vault # TODO
+# Create Key Vault # TODO. Update access policy to pick Azure SP
 resource "azurerm_key_vault" "kv-wotlab01" {
   name                = "kv-wotlab01"
   location            = azurerm_resource_group.imagesRG.location
@@ -73,7 +74,7 @@ resource "azurerm_key_vault" "kv-wotlab01" {
   }
 }
 
-# Store GitHub token in Key Vault 
+# Store GitHub token in Key Vault  # TODO. Update with TFVars and ADO Variable
 resource "azurerm_key_vault_secret" "github_token" {
   name         = "github-token"
   value        = "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"  # TODO. reference through ADO Variable 

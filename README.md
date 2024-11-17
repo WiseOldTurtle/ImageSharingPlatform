@@ -34,7 +34,7 @@ image-sharing-platform-case-study/
 │       ├── main.tf                   # Terraform configuration for Static Web App
 │       ├── staticwebapp-staticsite.json  # ARM template for app settings
 |       ├── variables.tf              # variables
-│       └── terraform.tfvars          # Variable values
+│       └── functionapp-arm-template.json         # Variable values
 └── diagrams/                         # Diagrams for architecture and flow explanations
     └── azure-functions-architecture.png  # Diagram for Azure Functions solution
 ```

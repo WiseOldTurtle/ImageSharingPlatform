@@ -24,7 +24,7 @@
   "resources": [
     {
       "type": "Microsoft.Web/staticSites/config",
-      "apiVersion": "2020-10-01",
+      "apiVersion": "2023-01-01",
       "name": "[concat(parameters('staticSiteName'), '/appsettings')]",
       "properties": {
         "STORAGE_CONNECTION_STRING": "[parameters('storageConnectionString')]",

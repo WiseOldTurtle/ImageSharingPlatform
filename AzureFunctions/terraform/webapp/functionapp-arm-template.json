@@ -1,10 +1,10 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "resources": [
     {
       "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2021-02-01",
+      "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
       "properties": {
         "name": "[parameters('functionAppPlanName')]",
@@ -16,7 +16,7 @@
     },
     {
       "type": "Microsoft.Web/sites",
-      "apiVersion": "2021-02-01",
+      "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
       "properties": {
         "name": "[parameters('functionAppName')]",
@@ -37,7 +37,7 @@
     },
     {
       "type": "Microsoft.Web/sites/sourcecontrols",
-      "apiVersion": "2021-02-01",
+      "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
       "properties": {
         "repoUrl": "https://github.com/WiseOldTurtle/ImageSharingPlatform",
