@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "resources": [
+      {
+        "type": "Microsoft.Web/serverFarms",
+        "apiVersion": "2021-02-01",
+        "location": "[parameters('location')]",
+        "properties": {
+          "name": "[parameters('functionAppPlanName')]",
+          "sku": {
+            "Tier": "Dynamic",
+            "Name": "Y1"
+          }
+        }
+      },
+      {
+        "type": "Microsoft.Web/sites",
+        "apiVersion": "2021-02-01",
+        "location": "[parameters('location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/serverFarms', parameters('functionAppPlanName'))]"
+        ],
+        "properties": {
+          "name": "[parameters('functionAppName')]",
+          "serverFarmId": "[resourceId('Microsoft.Web/serverFarms', parameters('functionAppPlanName'))]",
+          "siteConfig": {
+            "linuxFxVersion": "NODE|14"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "location": {
+        "type": "string",
+        "defaultValue": "westeurope"
+      },
+      "functionAppPlanName": {
+        "type": "string"
+      },
+      "functionAppName": {
+        "type": "string"
+      }
+    }
+  }
+  

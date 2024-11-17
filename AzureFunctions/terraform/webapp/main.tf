@@ -59,38 +59,20 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   })
 }
 
-# Function App Plan (Linux) - Updated to Linux Function App Plan
-resource "azurerm_linux_function_app_plan" "function_plan" {
-  name                = "function-app-plan"
-  location            = azurerm_resource_group.webapp_rg.location
+# Deploy Function App using ARM Template
+resource "azurerm_resource_group_template_deployment" "function_app_deployment" {
+  name                = "function-app-deployment"
   resource_group_name = azurerm_resource_group.webapp_rg.name
-  kind                = "FunctionApp"
-  sku {
-    tier = "Dynamic"  # Consumption Plan
-    size = "Y1"       # For cost-effective hosting
-  }
-}
+  deployment_mode     = "Incremental"
 
-# Linux Function App Resource - Updated to use Linux Function App Plan
-resource "azurerm_linux_function_app" "function_app" {
-  name                      = "frontend-function-app"
-  location                  = azurerm_resource_group.webapp_rg.location
-  resource_group_name       = azurerm_resource_group.webapp_rg.name
-  service_plan_id           = azurerm_linux_function_app_plan.function_plan.id 
-  storage_account_name      = data.terraform_remote_state.management.outputs.storage_account_name
-  storage_account_access_key = data.terraform_remote_state.management.outputs.storage_account_access_key
+  # Reference the ARM template file
+  template_content = file("${path.module}/functionapp-arm-template.json")
 
-  site_config {
-    application_stack {
-      node_version = "14"
-    }
-  }
-
-  app_settings = {
-    "FUNCTIONS_WORKER_RUNTIME" = "node"
-    "AzureWebJobsStorage"      = data.terraform_remote_state.management.outputs.storage_account_connection_string
-    "GITHUB_TOKEN"             = data.azurerm_key_vault_secret.github_token.value
-  }
+  parameters_content = jsonencode({
+    functionAppPlanName = { value = "function-app-plan" }
+    functionAppName     = { value = "frontend-function-app" }
+    location            = { value = azurerm_resource_group.webapp_rg.location }
+  })
 }
 
 # Data source for GitHub token from Key Vault
