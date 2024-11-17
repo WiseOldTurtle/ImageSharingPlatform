@@ -85,6 +85,12 @@ output "github_token_secret_id" {
   value = azurerm_key_vault_secret.github_token.id
 }
 
+
+output "key_vault_id" {
+  value = azurerm_key_vault.kv-wotlab01.id 
+}
+
+
 # Output the Storage Account Connection String
 output "storage_account_connection_string" {
   value = azurerm_storage_account.image_storage.primary_connection_string
