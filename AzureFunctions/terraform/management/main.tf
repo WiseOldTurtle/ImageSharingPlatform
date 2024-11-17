@@ -30,7 +30,7 @@ resource "random_id" "unique_id" {
 }
 
 resource "azurerm_storage_account" "image_storage" {
-  name                     = "imagestorageaccount${random_id.unique_id.hex}"
+  name                     = "imagestorage${random_id.unique_id.hex}"
   resource_group_name      = azurerm_resource_group.imagesRG.name
   location                 = azurerm_resource_group.imagesRG.location
   account_tier             = "Standard"
