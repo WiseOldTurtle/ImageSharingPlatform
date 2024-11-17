@@ -39,15 +39,15 @@ resource "azurerm_storage_account" "image_storage" {
 
 resource "azurerm_storage_container" "images" {
   name                  = "images"
-  storage_account_id    = azurerm_storage_account.image_storage.id
+  storage_account_name  = azurerm_storage_account.image_storage.name
   container_access_type = "blob"
 }
 
 # Create Key Vault # TODO
 resource "azurerm_key_vault" "kv-wotlab01" {
   name                = "kv-wotlab01"
-  location            = azurerm_resource_group.webapp_rg.location
-  resource_group_name = azurerm_resource_group.webapp_rg.name
+  location            = azurerm_resource_group.imagesRG.location
+  resource_group_name = azurerm_resource_group.imagesRG.name
 
   sku_name = "standard"
 
