@@ -50,17 +50,17 @@ resource "azurerm_static_site" "frontend" {
 
 # ARM Template deployment reference (terraform module workaround) 
 resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
-  name                = "frontend-webapp-casestudy"
+  name                = "frontend-webapp-deployment"
   resource_group_name = azurerm_resource_group.webapp_rg.name
   deployment_mode     = "Incremental"
 
   # Reference the ARM template file # TODO. replace hardcoded filepath with $path.module 
-  template_content = file("${path.module}/staticwebapp-staticsite.json")
+  template_content = file("staticwebapp-staticsite.json")
 
 
   parameters_content = jsonencode({
     staticSiteName          = { value = azurerm_static_site.frontend.name }
-    storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string }  # Pull from management state file
+    storageConnectionString = { value = data.terraform_remote_state.management.outputs.storage_account_connection_string } 
     imageResolution         = { value = var.image_resolution }
     logLevel                = { value = var.log_level }
   })

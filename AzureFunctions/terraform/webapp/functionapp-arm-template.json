@@ -38,9 +38,9 @@
       }
     },
     {
-      "name": "sourcecontrol-wotlab01",
       "type": "Microsoft.Web/sites/sourcecontrols",
       "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', parameters('siteName'), 'web')]",
       "location": "[parameters('location')]",
       "properties": {
         "repoUrl": "https://github.com/WiseOldTurtle/ImageSharingPlatform",
@@ -71,6 +71,13 @@
     },
     "storageConnectionString": {
       "type": "string"
+    },
+    "siteName": {
+      "type": "string",
+      "defaultValue": "[format('WebApp-{0}', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "The name of you Web Site."
+      }
     }
   }
 }
