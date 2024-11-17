@@ -75,9 +75,14 @@ resource "azurerm_resource_group_template_deployment" "function_app_deployment" 
   })
 }
 
+output "management_outputs" {
+  value = data.terraform_remote_state.management.outputs
+}
+
 
 # Data source for GitHub token from Key Vault
-data "azurerm_key_vault_secret" "github_token" {
-  name         = "github-token"
-  key_vault_id = data.terraform_remote_state.management.outputs.key_vault_id
-}
+# data "azurerm_key_vault_secret" "github_token" {
+#   name         = "github-token"
+#   key_vault_id = data.terraform_remote_state.management.outputs.key_vault_id
+# }
+
