@@ -11,12 +11,6 @@
     "imageResolution": {
       "type": "string"
     },
-    // "linkShortenerApiKey": {
-    //   "type": "string"
-    // },
-    // "authSecret": {
-    //   "type": "string"
-    // },
     "logLevel": {
       "type": "string"
     }
@@ -24,13 +18,11 @@
   "resources": [
     {
       "type": "Microsoft.Web/staticSites/config",
-      "apiVersion": "2023-01-01",
-      "name": "[concat(parameters('staticSiteName'), '/appsettings')]",
+      "apiVersion": "2019-08-01",
+      "name": "[concat(parameters('staticSiteName'), '/', 'appsettings')]",
       "properties": {
         "STORAGE_CONNECTION_STRING": "[parameters('storageConnectionString')]",
         "IMAGE_RESOLUTION": "[parameters('imageResolution')]",
-        // "LINK_SHORTENER_API_KEY": "[parameters('linkShortenerApiKey')]",
-        // "AUTH_SECRET": "[parameters('authSecret')]",
         "LOG_LEVEL": "[parameters('logLevel')]"
       }
     }

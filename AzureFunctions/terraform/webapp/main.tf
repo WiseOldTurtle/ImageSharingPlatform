@@ -55,7 +55,7 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   deployment_mode     = "Incremental"
 
   # Reference the ARM template file # TODO. replace hardcoded filepath with $path.module 
-  template_content = file("staticwebapp-staticsite.json")
+  template_content = file("./staticwebapp-staticsite.json")
 
 
   parameters_content = jsonencode({
