@@ -66,6 +66,7 @@ stages:
               ArtifactName: 'TrivyScanResults'
               publishLocation: 'Container'
 
+  # TODO. Get this portion in a script and reference to clean up pipeline
   - stage: SetupCore
     jobs:
       - job: CreateBackendResources
@@ -95,7 +96,7 @@ stages:
                 --access-tier Hot 
             displayName: 'Create Storage Account'
 
-          # Retrieve Storage Account Key for container creation
+          # Retrieve Storage Account Key for container creation 
           - script: |
               ACCOUNT_KEY=$(az storage account keys list --resource-group $(backendRGName) \
               --account-name $(backendStorageAccountName) --query '[0].value' -o tsv)
@@ -123,7 +124,7 @@ stages:
             inputs:
               terraformVersion: latest
 
-          # Loop through directories
+          # Loop through directories (shows as error but works)
           - ${{ each dir in split(variables.directories, ',') }}:
             - task: TerraformTaskV4@4
               displayName: 'Terraform Init (${{ dir }})'
