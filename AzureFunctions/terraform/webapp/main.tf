@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>3.0"
+      version = "~> 4.0"  # Updated provider version for Linux Function App support, other fApp is depreciated
     }
   }
   backend "azurerm" {
@@ -24,7 +24,7 @@ data "terraform_remote_state" "management" {
     resource_group_name   = "tfstate"
     storage_account_name  = "terraformstateprojwot1"
     container_name        = "tfstate"
-    key                   = "management.tfstate"  # Ensure the correct path to the management tfstate
+    key                   = "management.tfstate"
   }
 }
 
@@ -59,8 +59,8 @@ resource "azurerm_resource_group_template_deployment" "frontend_appsettings" {
   })
 }
 
-# Function App Plan (Consumption Plan)
-resource "azurerm_function_app_plan" "function_plan" {
+# Function App Plan (Linux) - Updated to Linux Function App Plan
+resource "azurerm_linux_function_app_plan" "function_plan" {
   name                = "function-app-plan"
   location            = azurerm_resource_group.webapp_rg.location
   resource_group_name = azurerm_resource_group.webapp_rg.name
@@ -71,15 +71,14 @@ resource "azurerm_function_app_plan" "function_plan" {
   }
 }
 
-# Linux Function App Resource
+# Linux Function App Resource - Updated to use Linux Function App Plan
 resource "azurerm_linux_function_app" "function_app" {
   name                      = "frontend-function-app"
   location                  = azurerm_resource_group.webapp_rg.location
   resource_group_name       = azurerm_resource_group.webapp_rg.name
-  service_plan_id           = azurerm_function_app_plan.function_plan.id
+  service_plan_id           = azurerm_linux_function_app_plan.function_plan.id 
   storage_account_name      = data.terraform_remote_state.management.outputs.storage_account_name
   storage_account_access_key = data.terraform_remote_state.management.outputs.storage_account_access_key
-  
 
   site_config {
     application_stack {
@@ -100,7 +99,7 @@ data "azurerm_key_vault_secret" "github_token" {
   key_vault_id = data.terraform_remote_state.management.outputs.key_vault_id
 }
 
-# Link GitHub Repository to Function App
+# Link GitHub Repository to Function App - Updated to use Linux Function App Source Control
 resource "azurerm_linux_function_app_source_control" "github" {
   function_app_id  = azurerm_linux_function_app.function_app.id
   repo_url         = "https://github.com/WiseOldTurtle/ImageSharingPlatform"
