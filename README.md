@@ -44,18 +44,16 @@ This solution leverages containerization with Docker and Kubernetes for scalabil
 
 ### **Azure-Native Approach (some alternative points as well)**  
 
-#### **Image Upload (Anonymous)**  
-This is where the user experience begins:  
-- **Static Web App**: The front-end provides a simple HTML form where users can upload their images, no login required. This keeps things lightweight and straightforward for anyone to use.  
-- **Azure Functions**: Once an image is uploaded, Azure Functions are triggered. These functions validate the file (checking type and size) and ensure the image is then securely stored in Azure Blob Storage for future use.
+#### **Image Resizing & Links to Resized Images**  
 
-#### **Image Resizing and URLs**  
-Handling large image uploads and resizing them asynchronously is one of the main technical challenges of this project. Here's how it works:  
-- **Azure Durable Functions**: To handle the heavy lifting of resizing, I opted for Azure Durable Functions. This allows the resizing process to run in the background, so users don’t have to wait long for results.  
-- **Multiple Resolutions**: Once the image is uploaded to Blob Storage, the resizing function generates multiple copies of the image at different resolutions (e.g., 720p, 1080p) and saves them back into Blob Storage.
+Handling large image uploads and generating accessible links is central to this project. Here's how it works:  
 
-#### **Links to Resized Images**  
-Once the resizing process is complete, users get a direct link to each version of the image. Each URL points to the exact resolution they need, ready to be shared or downloaded.
+1. **Image Upload**: Users upload images via an HTTP request to the Azure Function.  
+2. **Background Resizing**: Using Azure Functions, the image is resized into multiple resolutions (e.g., thumbnail, medium, large) to ensure efficient and user-friendly processing without delays.
+3. **Blob Storage Upload**: Resized images are uploaded to Azure Blob Storage, organized by resolution for easy management.  
+4. **Generate URLs**: Public URLs for each resolution are created and returned to the user, providing direct access to the resized images.  
+
+This approach ensures scalability, cost-effectiveness, and a seamless user experience for sharing and downloading images.
 
 #### **Cost-Effective Design**  
 When designing this solution, cost optimization was a top priority (especially since I’m using a Pay-as-you-go subscription). Here’s how I kept costs in check:  
