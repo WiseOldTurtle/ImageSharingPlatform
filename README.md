@@ -9,8 +9,8 @@ This project demonstrates a cost-effective, scalable, and secure image-sharing p
 1. [Architecture Overview](#architecture-overview)  
     - [Solution 1: Azure Functions + Static Web Apps](#solution-1-azure-functions--static-web-apps)  
     - [Solution 2: AKS & Docker](#solution-2-aks--docker)  
-2. [Core Features](#core-features)  
-    - [Azure-Native Approach (some alternative points as well)](#azure-native-approach-some-alternative-points-as-well)  
+2. [Azure-Native Approach (some alternative points as well)](#azure-native-approach-some-alternative-points-as-well) 
+    - [Core Features](#core-features)    
     - [Advanced Features Solution](#advanced-features-solution)  
 3. [File Structure](#file-structure)  
     - [Azure Functions Solution](#azure-functions-solution)  
@@ -46,14 +46,14 @@ This solution leverages containerization with Docker and Kubernetes for scalabil
 
 #### **Image Resizing & Links to Resized Images**  
 
-Handling large image uploads and generating accessible links is central to this project. Here's how it works:  
+Handling large image uploads and generating accessible links is central to this project. Here’s how the resizing and link generation works, step-by-step:
 
-1. **Image Upload**: Users upload images via an HTTP request to the Azure Function.  
-2. **Background Resizing**: Using Azure Functions, the image is resized into multiple resolutions (e.g., thumbnail, medium, large) to ensure efficient and user-friendly processing without delays.
-3. **Blob Storage Upload**: Resized images are uploaded to Azure Blob Storage, organized by resolution for easy management.  
-4. **Generate URLs**: Public URLs for each resolution are created and returned to the user, providing direct access to the resized images.  
+1. **Uploading the Image**: Users send their image through a simple HTTP request to the Azure Function. No fancy forms—just quick and easy.  
+2. **Resizing on the Fly**: The image gets resized into different resolutions (like thumbnail, medium, and large) using Python’s PIL library. This all happens in the background, thanks to Azure Durable Functions, so users don’t have to wait around.  
+3. **Organized Storage**: Each resized version is uploaded to Azure Blob Storage, neatly sorted by resolution. Think folders for “thumbnail,” “medium,” and “large.”  
+4. **Direct Links**: The Function generates public links for each resized version and sends them back to the user. These links are ready to share, download, or use wherever needed.  
 
-This approach ensures scalability, cost-effectiveness, and a seamless user experience for sharing and downloading images.
+The result? Fast, scalable image handling with minimal hassle for the user.
 
 #### **Cost-Effective Design**  
 When designing this solution, cost optimization was a top priority (especially since I’m using a Pay-as-you-go subscription). Here’s how I kept costs in check:  
@@ -77,10 +77,11 @@ To ensure the platform handles unpredictable traffic spikes without issues, I re
 
 Of course, if we were to use a more advanced orchestration approach with AKS, we could implement Horizontal Pod Autoscaling (HPA), which allows containers to automatically scale based on CPU usage or custom metrics. This would be particularly useful if we need more granular control over scaling and wish to maintain high availability during traffic surges. Additionally, we could implement Azure Redis Cache to handle high-throughput and reduce backend load, improving overall system performance during spikes in traffic. (Disclaimer. I know of Redis Cache and its uses, but never have used it before)
 
-#### **User Authentication & Dashboard**  
-If the platform were to evolve to support more advanced user management:  
-- **Azure AD B2C**: I would integrate Azure AD B2C to manage both user logins and anonymous access in a secure, seamless way.  
-- **Database**: A database, such as Cosmos DB or SQL, would be used to store metadata for each image, like the resolution, upload time, and the user who uploaded it, making it easy to track and retrieve images when needed.
+#### **User Accounts & Image Management**  
+To give users more control and personalization, the platform could include a login feature:  
+- **User Logins**: Users log in securely (e.g., via Azure AD B2C) to access their account.  
+- **Uploaded Images Dashboard**: A personalized dashboard allows users to view their uploaded images and resized copies in one place, making it easy to manage or download them anytime.  
+- **Secure Data Management**: Metadata about uploaded images—like resolution and upload time—would be stored in a database (e.g., Cosmos DB or SQL) for quick retrieval and display.  
 
 #### **Link Shortener**  
 For an extra feature, I’d add a link shortener functionality:  
