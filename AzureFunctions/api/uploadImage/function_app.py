@@ -30,7 +30,8 @@ def resize_image(image_path, resolution):
         img.save(temp_file.name, format="JPEG")
         return temp_file.name
 
-def upload_image(req: HttpRequest) -> HttpResponse:
+def main(req: HttpRequest) -> HttpResponse:
+    """HTTP trigger function to handle image upload."""
     try:
         # Save the uploaded image
         uploaded_file = req.files["image"]
@@ -57,4 +58,3 @@ def upload_image(req: HttpRequest) -> HttpResponse:
     except Exception as e:
         logging.error(f"Error processing image: {e}")
         return HttpResponse(f'{{"error": "{str(e)}"}}', status_code=500)
-
