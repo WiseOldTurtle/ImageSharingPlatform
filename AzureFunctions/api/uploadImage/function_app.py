@@ -31,11 +31,11 @@ def resize_image(image_path, resolution):
         img.save(temp_file.name, format="JPEG")
         return temp_file.name
 
-# Define your function app
+# Define the function app
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-@app.route(route="ImageResizer")
-def ImageResizer(req: func.HttpRequest) -> func.HttpResponse:
+@app.route(route="ImageResizer", methods=["POST"])
+def image_resizer(req: func.HttpRequest) -> func.HttpResponse:
     """HTTP trigger function to handle image upload."""
     try:
         # Save the uploaded image

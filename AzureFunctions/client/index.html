@@ -21,7 +21,8 @@
             const formData = new FormData();
             formData.append("image", file);
 
-            const response = await fetch("/api/upload", {
+            // Update the fetch URL to point to your Azure Function endpoint
+            const response = await fetch("https://imagesharingplatform.azurewebsites.net/api/ImageResizer", {
                 method: "POST",
                 body: formData,
             });
