@@ -1,22 +1,21 @@
 import logging
 import os
-from dotenv import load_dotenv
+from azure.identity import ManagedIdentityCredential
+from azure.keyvault.secrets import SecretClient
 from azure.storage.blob import BlobServiceClient
 import azure.functions as func  # Import azure.functions
 from PIL import Image
 import tempfile
 
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
-
-# Access KV via Managed Identity
-key_vault_name = os.getenv("kv-imagesharingplatform")  
+# Access Key Vault via Managed Identity
+key_vault_name = os.getenv("KEY_VAULT_NAME")  # Set in Azure App Settings
 key_vault_uri = f"https://kv-imagesharingplatform.vault.azure.net"
 
-credential = DefaultAzureCredential()
+# Use Managed Identity for authentication
+credential = ManagedIdentityCredential()
 secret_client = SecretClient(vault_url=key_vault_uri, credential=credential)
 
-# Retrieve the storage connection string
+# Retrieve the storage connection string securely
 storage_connection_secret_name = "storage-connection-string"
 STORAGE_CONNECTION_STRING = secret_client.get_secret(storage_connection_secret_name).value
 
@@ -28,7 +27,7 @@ RESOLUTIONS = {
     "large": (1000, 1000),
 }
 
-# Initialize BlobServiceClient
+# Initialize BlobServiceClient using the retrieved connection string
 blob_service_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION_STRING)
 
 def resize_image(image_path, resolution):
@@ -63,7 +62,7 @@ def image_resizer(req: func.HttpRequest) -> func.HttpResponse:
             with open(resized_file_path, "rb") as data:
                 blob_client.upload_blob(data, overwrite=True)
 
-            # Generate public URL
+            # Generate public URL for the uploaded image
             image_url = blob_client.url
             urls.append({label: image_url})
 
