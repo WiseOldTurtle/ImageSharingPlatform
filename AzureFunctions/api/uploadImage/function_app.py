@@ -56,10 +56,20 @@ def image_resizer(req: func.HttpRequest) -> func.HttpResponse:
                 blob_client.upload_blob(data, overwrite=True)
 
             # Generate public URL
-            urls.append(blob_client.url)
+            image_url = blob_client.url
+            urls.append({label: image_url})
 
-        return func.HttpResponse(f'{{"links": {urls}}}', mimetype="application/json")
+        # Clean up the temporary original image
+        os.remove(original_file_path)
+
+        # Return JSON response with image URLs
+        return func.HttpResponse(
+            f'{{"links": {str(urls)}}}',
+            mimetype="application/json"
+        )
 
     except Exception as e:
         logging.error(f"Error processing image: {e}")
-        return func.HttpResponse(f'{{"error": "{str(e)}"}}', status_code=500)
+        return func.HttpResponse(
+            f'{{"error": "{str(e)}"}}', status_code=500
+        )
