@@ -68,7 +68,7 @@ Of course, there is the possibilty of using an orchestration approach with AKS, 
 #### **TODO. User Accounts & Image Management**  
 To give users more control and personalization, the platform could include a login feature:  
 - **User Logins**: Users log in securely possibly through the use of AD B2C, StaticSite authentication (can do something like google) 
-- **Uploaded Images to be listed and viewed**: 
+- **Uploaded Images to be listed and viewed**:  
 
 #### **TODO. Link Shortener**  
 One of the extra features was the requirement of a link shortner:  
