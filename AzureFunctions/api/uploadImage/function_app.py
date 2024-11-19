@@ -8,14 +8,14 @@ from PIL import Image
 import tempfile
 
 # Access Key Vault via Managed Identity
-key_vault_name = os.getenv("KEY_VAULT_NAME")  # Set in Azure App Settings
+key_vault_name = os.getenv("KEY_VAULT_NAME")  # (Note to self) Environmental variables in Azure App Settings
 key_vault_uri = f"https://kv-imagesharingplatform.vault.azure.net"
 
 # Use Managed Identity for authentication
 credential = ManagedIdentityCredential()
 secret_client = SecretClient(vault_url=key_vault_uri, credential=credential)
 
-# Retrieve the storage connection string securely
+# Retrieve the storage connection string
 storage_connection_secret_name = "storage-connection-string"
 STORAGE_CONNECTION_STRING = secret_client.get_secret(storage_connection_secret_name).value
 
@@ -27,7 +27,7 @@ RESOLUTIONS = {
     "large": (1000, 1000),
 }
 
-# Initialize BlobServiceClient using the retrieved connection string
+# Initialize BlobServiceClient using connection string
 blob_service_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION_STRING)
 
 def resize_image(image_path, resolution):
