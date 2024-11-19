@@ -151,8 +151,7 @@ CaseStudyBJSS/
 - Incorporate sentiment analysis for feedback on user experience with the platform.
 
 
-### **Security Enhancements & their Priorities** 
-#### Critical 
+### **Security Enhancements** 
 1. **Application Gateway**:  
    - Incorporate WAF (Web Application Firewall) for secure HTTP traffic.  
 2. **Azure Resource Security**:  
