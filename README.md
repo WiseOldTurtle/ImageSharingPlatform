@@ -7,14 +7,12 @@ This project demonstrates a cost-effective, scalable, and secure image-sharing p
 ## **Table of Contents**  
 
 1. [Architecture Overview](#architecture-overview)  
-    - [Solution 1: Azure Functions + Static Web Apps](#solution-1-azure-functions--static-web-apps)  
-    - [Solution 2: AKS & Docker](#solution-2-aks--docker)  
+    - [Solution: Azure Functions + Static Web Apps](#solution-1-azure-functions--static-web-apps)  
 2. [Azure-Native Approach (some alternative points as well)](#azure-native-approach-some-alternative-points-as-well) 
     - [Core Features](#core-features)    
     - [Advanced Features Solution](#advanced-features-solution)  
 3. [File Structure](#file-structure)  
     - [Azure Functions Solution](#azure-functions-solution)  
-    - [AKS & Docker Solution](#aks--docker-solution)  
 4. [Challenges & Workarounds](#challenges--workarounds)  
 5. [#TODO Notes](#todo-notes)  
 6. [Future Improvements](#future-improvements)  
@@ -24,69 +22,57 @@ This project demonstrates a cost-effective, scalable, and secure image-sharing p
 
 ## **Architecture Overview**  
 
-### **Solution 1: Azure Functions + Static Web Apps**
+### **Solution: Azure Functions + Static Web Apps**
 
 This solution uses serverless Azure services for simplicity and cost-effectiveness. It includes:  
-- **Frontend**: Azure Static Web Apps for a responsive web interface.  
-- **Backend**: Azure Functions to handle image uploads and processing.  
+- **Frontend**: Azure Static Web Apps for a web interface.  
+- **Backend**: Azure Functions to handle image uploads, resizing and processing.  
 - **Storage**: Azure Blob Storage for image storage in multiple resolutions.  
-
-### **Solution 2: AKS & Docker**  
-
-This solution leverages containerization with Docker and Kubernetes for scalability and flexibility. It includes:  
-- **Frontend**: Static HTML/CSS/JS hosted in a containerized app.  
-- **Backend**: A Dockerized Python/Flask app for handling uploads and processing.  
-- **Orchestration**: AKS for Kubernetes-based deployment.  
 
 ---
 
-## **Core Features**  
+## **Core Feature Requirement**  
 
 ### **Azure-Native Approach (some alternative points as well)**  
 
 #### **Image Resizing & Links to Resized Images**  
 
-Handling large image uploads and generating accessible links is central to this project. Here’s how the resizing and link generation works, step-by-step:
+Handling large image uploads and generating urls for the end user to be able to share are core requirements for this case study. Here’s a breakdown of how the resizing and link generation works:
 
-1. **Uploading the Image**: Users send their image through a simple HTTP request to the Azure Function. No fancy forms—just quick and easy.  
-2. **Resizing on the Fly**: The image gets resized into different resolutions (like thumbnail, medium, and large) using Python’s PIL library. This all happens in the background, thanks to Azure Durable Functions, so users don’t have to wait around.  
-3. **Organized Storage**: Each resized version is uploaded to Azure Blob Storage, neatly sorted by resolution. Think folders for “thumbnail,” “medium,” and “large.”  
-4. **Direct Links**: The Function generates public links for each resized version and sends them back to the user. These links are ready to share, download, or use wherever needed.  
-
-The result? Fast, scalable image handling with minimal hassle for the user.
+1. **Uploading the Image**: Users send their image through simply attaching their image and hitting upload. No fancy forms—just quick and easy.  
+2. **Resizing on the Fly**: The image gets resized into different resolutions (like thumbnail, medium, and large) using Python’s PIL library.  
+3. **Organized Storage**: Each resized version is uploaded to Azure Blob Storage, neatly sorted by resolution. 
+4. **TODO. Direct Links**: The Function generates public links for each resized version and sends them back to the user. These links are ready to share, download, or use wherever needed.  
 
 #### **Cost-Effective Design**  
 When designing this solution, cost optimization was a top priority (especially since I’m using a Pay-as-you-go subscription). Here’s how I kept costs in check:  
 - **Azure Consumption Plan**: I opted for the Azure Consumption Plan for Azure Functions, meaning I only pay when the functions are executed—helping avoid unnecessary costs.  
-- **Blob Storage Tiers**: I used the Hot and Cool tiers in Blob Storage to optimize costs. Frequently accessed images are stored in the Hot tier, while images that aren't accessed as often go into the Cool tier. This can be managed via the portal or, ideally, using the Azure SDK. I can also set up lifecycle management rules to automatically transition infrequently used blobs from Hot to Cool over time.
+- **Blob Storage Tiers**: I used the Hot and Cool tiers in Blob Storage to optimize costs. Frequently accessed images are stored in the Hot tier, while images that aren't accessed as often go into the Cool tier. This can be achieved by setting up lifecycle management rules to automatically transition less frequently used blobs from Hot to Cool over time.
 
-##### **Alternative Storage Options**  
+##### **Some Alternative Storage Options**  
 
-- **Azure CDN with Blob Storage**: Speeds up image delivery by caching at edge locations, reducing Blob Storage load and improving user experience.  
-- **Azure File Storage**: Ideal for shared access to images with an SMB interface, but Blob Storage is better for static content.  
-- **Azure Event Grid**: Automates workflows, triggering actions like image resizing or moving files to cheaper storage upon upload.  
-- **Azure Archive Storage**: Low-cost, long-term storage for images that aren’t accessed often, best for archival rather than active sharing.
+- **Azure CDN with Blob Storage**: Speeds up image delivery by caching at edge locations, reducing Blob Storage load and improving user experience. (Ideally I would have enabled this if I was not bound by my PAYG sub)  
+- **Azure File Storage** | **Azure Event Grid** | **Azure Archive Storage**
 
 
-### **Advanced Features Solution**  
+### **Advanced Feature Requirement**  
 
 #### **Scaling for Spikes**  
-To ensure the platform handles unpredictable traffic spikes without issues, I relied on Azure’s serverless scaling capabilities:  
+To ensure the platform handles unpredictable traffic spikes without issues, I relied on Azure’s serverless scaling capabilities:
+
 - **Azure Functions** automatically scale up or down depending on demand, which makes it ideal for situations where you might get sudden surges in uploads.  
-- For better handling of large bursts of traffic, I could incorporate **Azure Event Grid or Queues**. These services would help by queuing uploads, ensuring the backend processes them in a manageable order, without overloading the system.  
+- For better handling of large bursts of traffic, I could incorporate **Azure Event Grid or Queues or even Azure CDN**. These services would compliment the existing solution and enable us to enjoy a few more useful features such as queue management, image caching and an overall faster and more reliable service. 
 
-Of course, if we were to use a more advanced orchestration approach with AKS, we could implement Horizontal Pod Autoscaling (HPA), which allows containers to automatically scale based on CPU usage or custom metrics. This would be particularly useful if we need more granular control over scaling and wish to maintain high availability during traffic surges. Additionally, we could implement Azure Redis Cache to handle high-throughput and reduce backend load, improving overall system performance during spikes in traffic. (Disclaimer. I know of Redis Cache and its uses, but never have used it before)
+Of course, there is the possibilty of using an orchestration approach with AKS, which has the Horizontal Pod Autoscaling (HPA) feature (containers scale based on CPU or metrics). This would be particularly useful if we need more granular control over scaling and wish to maintain high availability during traffic surges. Additionally, we could implement Azure Redis Cache to handle high-throughput and reduce backend load, improving overall system performance during spikes in traffic. (Disclaimer. I know of Redis Cache and its uses, but never have used it before this was just a little bit of googling at alternatives)
 
-#### **User Accounts & Image Management**  
+#### **TODO. User Accounts & Image Management**  
 To give users more control and personalization, the platform could include a login feature:  
-- **User Logins**: Users log in securely (e.g., via Azure AD B2C) to access their account.  
-- **Uploaded Images Dashboard**: A personalized dashboard allows users to view their uploaded images and resized copies in one place, making it easy to manage or download them anytime.  
-- **Secure Data Management**: Metadata about uploaded images—like resolution and upload time—would be stored in a database (e.g., Cosmos DB or SQL) for quick retrieval and display.  
+- **User Logins**: Users log in securely possibly through the use of AD B2C, StaticSite authentication (can do something like google) 
+- **Uploaded Images to be listed and viewed**: 
 
-#### **Link Shortener**  
-For an extra feature, I’d add a link shortener functionality:  
-- Users could request a short URL for their uploaded images, and an Azure Function would generate a unique shortened link for them.  
-- These shortened links would be stored in a Cosmos DB instance for easy management and look-up.
+#### **TODO. Link Shortener**  
+One of the extra features was the requirement of a link shortner:  
+- Users could request a URL for their uploaded images, and an Azure Function would generate a unique shortened link for them through the use of bitly and an API? (will need to update the Python) 
 
 ---
 
@@ -158,23 +144,25 @@ CaseStudyBJSS/
 ## **Future Improvements**
 
 ### **Alternative Solution Design**  
-- Add CI/CD for AKS solution to demonstrate container orchestration and scalability.
+- Automate full solution using CI/CD pipeline.
+- Look into an AKS solution to demonstrate container orchestration and scalability.
 
 ### **QOL changes** 
 - Incorporate sentiment analysis for feedback on user experience with the platform.
 
 
-### **Security Enhancements**  
+### **Security Enhancements & their Priorities** 
+#### Critical 
 1. **Application Gateway**:  
    - Incorporate WAF (Web Application Firewall) for secure HTTP traffic.  
-2. **Private Endpoints**:  
-   - Use private endpoints for Blob Storage and Key Vault for enhanced security.  
-3. **Managed Identities**:  
-   - Enable secure, role-based access to Azure resources using Managed Identities.
-4. **Custom Domain**:
-   - Custom Domain with SSL for secure and trustworthy access.
-5. **Logic App Integration**:
-   - TODO. Write more about this.
-6. **Azure WebApp**:
-   - Possible for alternative Hosting
+2. **Azure Resource Security**:  
+   - Remove any public access, hardcode IPs and utilize endpoints.  
+3. **Custom Domain**:
+   - Setup staticsite to use a Custom domain 
+4. **Logic to Validate user input**:
+   - Create some logic where file size and metadata can be validated. Metadata scanning will avoid malicious injected code. Defender to scan files when they have landed in storage.
+5. **Secure Connection String**:
+   - Introduce the use of Azure KeyVault to hold keys and secrets. (can be referenced through ADO variables in the YAML)
+6. **RBAC Implementation**:
+   - Possibly implement RBAC with custom roles such as **Uploader** or **Viewer** to restrict access. 
 
