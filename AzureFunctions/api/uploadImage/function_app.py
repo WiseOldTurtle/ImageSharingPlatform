@@ -6,11 +6,19 @@ import azure.functions as func  # Import azure.functions
 from PIL import Image
 import tempfile
 
-# Load environment variables from .env file
-load_dotenv()
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
 
-# Access environment variable for storage connection string
-STORAGE_CONNECTION_STRING = os.getenv("STORAGE_CONNECTION_STRING")
+# Access KV via Managed Identity
+key_vault_name = os.getenv("kv-imagesharingplatform")  
+key_vault_uri = f"https://kv-imagesharingplatform.vault.azure.net"
+
+credential = DefaultAzureCredential()
+secret_client = SecretClient(vault_url=key_vault_uri, credential=credential)
+
+# Retrieve the storage connection string
+storage_connection_secret_name = "storage-connection-string"
+STORAGE_CONNECTION_STRING = secret_client.get_secret(storage_connection_secret_name).value
 
 # Azure Storage configuration
 CONTAINER_NAME = "images"
