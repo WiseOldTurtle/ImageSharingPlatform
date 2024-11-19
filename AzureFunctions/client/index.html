@@ -12,6 +12,7 @@
         <button type="submit">Upload Image</button>
     </form>
     <div id="links"></div>
+
     <script>
         document.getElementById("uploadForm").addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -30,13 +31,20 @@
             if (response.ok) {
                 const data = await response.json();
                 const linksDiv = document.getElementById("links");
-                linksDiv.innerHTML = `
-                    <h3>Image Links:</h3>
-                    <ul>
-                        ${data.links
-                            .map((link) => `<li><a href="${link}" target="_blank">${link}</a></li>`)
-                            .join("")}
-                    </ul>`;
+
+                // Check if the response contains links
+                if (data.links && data.links.length > 0) {
+                    // Display links
+                    linksDiv.innerHTML = `
+                        <h3>Image Links:</h3>
+                        <ul>
+                            ${data.links
+                                .map((link) => `<li><a href="${link}" target="_blank">${link}</a></li>`)
+                                .join("")}
+                        </ul>`;
+                } else {
+                    linksDiv.innerHTML = `<p>No links found. Something went wrong.</p>`;
+                }
             } else {
                 alert("Failed to upload image");
             }
