@@ -1,0 +1,192 @@
+name: $(BuildDefinitionName)_$(date:yyyyMMdd)$(rev:.r)
+
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: Action
+    displayName: Action
+    type: string
+    default: 'Plan'
+    values:
+      - Plan
+      - Apply
+      - Destroy
+      - Test
+
+variables:
+  - group: WiseOldTurtleSP  # Variable group containing SP details
+  - group: terraform        # Variable group containing Terraform-related variables
+  - name: directories
+    value: "management,webapp,networking,policy"  # Updated with placeholder directories
+  - name: action
+    value: ${{ parameters.Action }}
+
+stages:
+  - stage: BackendSetup
+    displayName: 'Setup Terraform Backend'
+    jobs:
+      - job: SetupBackend
+        displayName: 'Run Azure CLI Setup for Backend'
+        steps:
+          - script: |
+              chmod +x scripts/setup.sh
+              ./scripts/setup.sh
+            displayName: 'Run Azure CLI Setup Script'
+
+  - stage: RunTesting
+    displayName: 'Run Trivy Vulnerability Scan for Terraform'
+    jobs:
+      - job: RunTrivy
+        displayName: 'Run Trivy Vulnerability Scanner on Terraform Files'
+        steps:
+          # Download and Install Trivy
+          - task: CmdLine@2
+            displayName: 'Download and Install Trivy vulnerability scanner'
+            inputs:
+              script: |
+                sudo apt-get update
+                sudo apt-get install rpm -y
+                wget https://github.com/aquasecurity/trivy/releases/download/v0.20.0/trivy_0.20.0_Linux-64bit.deb
+                sudo dpkg -i trivy_0.20.0_Linux-64bit.deb
+                trivy -v
+
+          # Run Trivy for LOW and MEDIUM severity issues
+          - task: CmdLine@2
+            displayName: 'LOW/MED - Trivy vulnerability scanner in IaC mode for Terraform files'
+            inputs:
+              script: |
+                mkdir -p trivy-reports
+                for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
+                  trivy config --severity LOW,MEDIUM --exit-code 0 --format json --output trivy-reports/$(basename $file)_lowmed.json "$file"
+                done
+
+          # Run Trivy for HIGH and CRITICAL severity issues
+          - task: CmdLine@2
+            displayName: 'HIGH/CRIT - Trivy vulnerability scanner in IaC mode for Terraform files'
+            inputs:
+              script: |
+                for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
+                  trivy config --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-reports/$(basename $file)_highcrit.json "$file"
+                done
+
+          # Publish Trivy Scan Results as a Build Artifact
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Trivy scan results as a build artifact'
+            inputs:
+              PathtoPublish: 'trivy-reports'
+              ArtifactName: 'TrivyScanResults'
+              publishLocation: 'Container'
+
+  - stage: TerraformTest
+    displayName: 'Test Terraform Code'
+    condition: eq('${{ parameters.Action }}', 'Test')
+    jobs:
+      - job: ValidateAndFmt
+        displayName: 'Validate and Format Terraform Code'
+        steps:
+          # Run Terraform Validate via Script
+          - task: CmdLine@2
+            displayName: 'Terraform Validate'
+            inputs:
+              script: |
+                chmod +x scripts/terraform_validate.sh
+                ./scripts/terraform_validate.sh
+            continueOnError: true  # Continue the pipeline if validation fails
+
+          # Run Terraform Fmt via Script
+          - task: CmdLine@2
+            displayName: 'Terraform Fmt'
+            inputs:
+              script: |
+                chmod +x scripts/terraform_fmt.sh
+                ./scripts/terraform_fmt.sh
+            continueOnError: true  # Continue the pipeline if formatting fails
+
+          # Publish validation and formatting output to Trivy reports
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Validation and Fmt Output'
+            inputs:
+              PathtoPublish: 'trivy-reports'
+              ArtifactName: 'TerraformValidateFmtReports'
+              publishLocation: 'Container'
+
+  - stage: PlanResources
+    displayName: 'Plan Terraform Resources'
+    condition: eq('${{ parameters.Action }}', 'Plan')
+    jobs:
+      - job: PlanTerraform
+        displayName: 'Plan Resources'
+        steps:
+          - script: |
+              chmod +x scripts/terraform_init.sh
+              ./scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+            displayName: 'Initialize Terraform Backend'
+
+          # Management stage handled separately
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/terraform/management
+              terraform plan -out=tfplan
+            displayName: 'Terraform Plan (management)'
+
+          # Loop through other directories (webapp, networking, policy)
+          - ${{ each dir in split(variables.directories, ',') }}:
+              - ${{ if ne(variables.dir, 'management') }}:
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/terraform/${{ dir }}
+                    terraform plan -out=tfplan
+                  displayName: 'Terraform Plan (${{ dir }})'
+
+  - stage: ApplyResources
+    displayName: 'Apply Terraform Resources'
+    condition: eq('${{ parameters.Action }}', 'Apply')
+    jobs:
+      - job: ApplyTerraform
+        displayName: 'Apply Resources'
+        steps:
+          - script: |
+              chmod +x scripts/terraform_init.sh
+              ./scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+            displayName: 'Initialize Terraform Backend'
+
+          # Management stage handled separately
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/terraform/management
+              terraform apply -auto-approve tfplan
+            displayName: 'Terraform Apply (management)'
+
+          # Loop through other directories (webapp, networking, policy)
+          - ${{ each dir in split(variables.directories, ',') }}:
+              - ${{ if ne(variables.dir, 'management') }}:
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/terraform/${{ dir }}
+                    terraform apply -auto-approve tfplan
+                  displayName: 'Terraform Apply (${{ dir }})'
+
+  - stage: DestroyResources
+    displayName: 'Destroy Terraform Resources'
+    condition: eq('${{ parameters.Action }}', 'Destroy')
+    jobs:
+      - job: DestroyTerraform
+        displayName: 'Destroy Resources'
+        steps:
+          - script: |
+              chmod +x scripts/terraform_init.sh
+              ./scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+            displayName: 'Initialize Terraform Backend'
+
+          # Management stage handled separately
+          - script: |
+              cd $(System.DefaultWorkingDirectory)/terraform/management
+              terraform destroy -auto-approve
+            displayName: 'Terraform Destroy (management)'
+
+          # Loop through other directories (webapp, networking, policy)
+          - ${{ each dir in split(variables.directories, ',') }}:
+              - ${{ if ne(variables.dir, 'management') }}:
+                - script: |
+                    cd $(System.DefaultWorkingDirectory)/terraform/${{ dir }}
+                    terraform destroy -auto-approve
+                  displayName: 'Terraform Destroy (${{ dir }})'
