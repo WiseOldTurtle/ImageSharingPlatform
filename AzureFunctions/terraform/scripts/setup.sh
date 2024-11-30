@@ -4,9 +4,9 @@
 echo "Logging into Azure with service principal..."
 
 az login --service-principal \
-    --username "$AZURE_CLIENT_ID" \
-    --password "$AZURE_CLIENT_SECRET" \
-    --tenant "$AZURE_TENANT_ID"
+    --username $AZURE_CLIENT_ID \
+    --password $AZURE_CLIENT_SECRET \
+    --tenant $AZURE_TENANT_ID
 
 if [ $? -ne 0 ]; then
     echo "Azure login failed!"
