@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~>4.0"  # Upgraded to match webapp
+      version = "~>4.0"
     }
   }
   backend "azurerm" {
@@ -17,13 +17,13 @@ provider "azurerm" {
   features {}
 }
 
-# Resource Group Module
-module "management_rg" {
-  source   = "../modules/resource_group"
+# Resource Group
+resource "azurerm_resource_group" "management_rg" {
   name     = var.resource_group_name
   location = var.location
 }
 
+# Random ID for Storage Account
 resource "random_id" "unique" {
   byte_length = 5
 }
@@ -31,12 +31,11 @@ resource "random_id" "unique" {
 # Storage Account for Images
 resource "azurerm_storage_account" "image_storage" {
   name                     = "imagestore${random_id.unique.hex}"
-  resource_group_name      = module.management_rg.name
-  location                 = module.management_rg.location
+  resource_group_name      = azurerm_resource_group.management_rg.name
+  location                 = azurerm_resource_group.management_rg.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
-
 
 # Storage Container
 resource "azurerm_storage_container" "images" {
@@ -45,18 +44,35 @@ resource "azurerm_storage_container" "images" {
   container_access_type = "blob"
 }
 
-# Key Vault Module
-module "key_vault" {
-  source              = "../modules/key_vault"
+# Key Vault
+resource "azurerm_key_vault" "management_kv" {
   name                = "kv-wotlab01"
-  resource_group_name = module.management_rg.name
-  location            = module.management_rg.location
-  github_token        = var.github_access_token  # referenced securely
+  resource_group_name = azurerm_resource_group.management_rg.name
+  location            = azurerm_resource_group.management_rg.location
+  tenant_id           = var.tenant_id
+  sku_name            = "standard"
+
+  access_policy {
+    tenant_id = var.tenant_id
+    object_id = var.object_id
+    secret_permissions = ["Get", "Set"]
+  }
+}
+
+# GitHub Token in Key Vault
+resource "azurerm_key_vault_secret" "github_token" {
+  name         = "github-token"
+  value        = var.github_access_token
+  key_vault_id = azurerm_key_vault.management_kv.id
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Outputs
 output "key_vault_id" {
-  value = module.key_vault.key_vault_id
+  value = azurerm_key_vault.management_kv.id
 }
 
 output "storage_account_connection_string" {
