@@ -37,7 +37,7 @@ stages:
         steps:
           - script: |
               chmod +x scripts/setup.sh
-              ./scripts/setup.sh
+              ./terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
 
   # Security Scan
@@ -91,12 +91,12 @@ stages:
         steps:
           - script: |
               chmod +x scripts/terraform_validate.sh
-              ./scripts/terraform_validate.sh
+              ./terraform/scripts/terraform_validate.sh
             displayName: 'Run Terraform Validate'
 
           - script: |
               chmod +x scripts/terraform_fmt.sh
-              ./scripts/terraform_fmt.sh
+              ./terraform/scripts/terraform_fmt.sh
             displayName: 'Run Terraform Fmt'
 
           - task: PublishBuildArtifacts@1
@@ -123,7 +123,7 @@ stages:
 
           - script: |
               chmod +x scripts/terraform_init.sh
-              ./scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              ./terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
 
           - script: |
@@ -155,7 +155,7 @@ stages:
 
           - script: |
               chmod +x scripts/terraform_init.sh
-              ./scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              ./terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
 
           - script: |
@@ -187,7 +187,7 @@ stages:
 
           - script: |
               chmod +x scripts/terraform_init.sh
-              ./scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              ./terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
 
           - script: |
