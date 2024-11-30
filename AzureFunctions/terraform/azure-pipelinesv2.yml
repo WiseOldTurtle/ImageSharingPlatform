@@ -8,9 +8,6 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-steps:
-- checkout: self  # repository checkout
-
 parameters:
   - name: Action
     displayName: Action
@@ -39,6 +36,7 @@ stages:
       - job: SetupBackend
         displayName: 'Run Azure CLI Setup for Backend'
         steps:
+          - checkout: self
           - script: mkdir -p trivy-reports validation-reports
             displayName: "Create Directories for Reports"
 
@@ -60,6 +58,7 @@ stages:
       - job: Security
         displayName: 'Run Trivy Vulnerability Scan on Terraform Files'
         steps:
+          - checkout: self
           - task: CmdLine@2
             displayName: 'Install Trivy vulnerability scanner'
             inputs:
@@ -101,6 +100,7 @@ stages:
       - job: ValidateAndFmt
         displayName: 'Validate and Format Terraform Code'
         steps:
+          - checkout: self
           - script: mkdir -p validation-reports
             displayName: "Create Directories for Validation Reports"
 
@@ -129,6 +129,7 @@ stages:
       - job: PlanTerraform
         displayName: 'Plan Resources'
         steps:
+          - checkout: self
           - task: Cache@2
             displayName: 'Cache Terraform Plugins'
             inputs:
@@ -161,6 +162,7 @@ stages:
       - job: ApplyTerraform
         displayName: 'Apply Resources'
         steps:
+          - checkout: self
           - task: Cache@2
             displayName: 'Cache Terraform Plugins'
             inputs:
@@ -193,6 +195,7 @@ stages:
       - job: DestroyTerraform
         displayName: 'Destroy Resources'
         steps:
+          - checkout: self
           - task: Cache@2
             displayName: 'Cache Terraform Plugins'
             inputs:
