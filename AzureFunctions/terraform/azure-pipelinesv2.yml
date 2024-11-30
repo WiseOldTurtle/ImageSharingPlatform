@@ -35,8 +35,12 @@ stages:
         displayName: 'Run Azure CLI Setup for Backend'
         steps:
           - checkout: self
-          - script: ls -R $(System.DefaultWorkingDirectory)
-            displayName: 'List Repository Contents'
+          - script: |
+              export AZURE_CLIENT_ID=$(TF_VAR_client_id)
+              export AZURE_CLIENT_SECRET=$(TF_VAR_client_secret)
+              export AZURE_TENANT_ID=$(TF_VAR_tenant_id)
+              echo "Environment variables for Azure CLI have been configured."
+            displayName: 'Export SP Variables for Azure CLI'
 
           - script: |
               chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh

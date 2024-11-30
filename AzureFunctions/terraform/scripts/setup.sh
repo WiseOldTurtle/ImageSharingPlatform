@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Azure Login
+# Log into Azure using a Service Principal
 echo "Logging into Azure with service principal..."
-az login --service-principal \
-  --username $TF_VAR_client_id \
-  --password $TF_VAR_client_secret \
-  --tenant $TF_VAR_tenant_id
 
-# Validate if login was successful
+az login --service-principal \
+    --username "$AZURE_CLIENT_ID" \
+    --password "$AZURE_CLIENT_SECRET" \
+    --tenant "$AZURE_TENANT_ID"
+
 if [ $? -ne 0 ]; then
-  echo "Azure login failed. Check your credentials and try again."
-  exit 1
+    echo "Azure login failed!"
+    exit 1
 fi
 
 # Create Resource Group
