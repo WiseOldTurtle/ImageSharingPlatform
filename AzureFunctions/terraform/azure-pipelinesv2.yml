@@ -36,13 +36,12 @@ stages:
         steps:
           - checkout: self
           - script: |
-              export AZURE_CLIENT_ID=$(TF_VAR_client_id)
-              export AZURE_CLIENT_SECRET=$(TF_VAR_client_secret)
-              export AZURE_TENANT_ID=$(TF_VAR_tenant_id)
-              echo "Environment variables for Azure CLI have been configured."
-            displayName: 'Export SP Variables for Azure CLI'
-
-          - script: |
+              export TF_VAR_client_id=$(TF_VAR_client_id)
+              export TF_VAR_client_secret=$(TF_VAR_client_secret)
+              export TF_VAR_tenant_id=$(TF_VAR_tenant_id)
+              export backendRGName=$(backendRGName)
+              export backendStorageAccountName=$(backendStorageAccountName)
+              export backendContainerName=$(backendContainerName)
               chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
               $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
