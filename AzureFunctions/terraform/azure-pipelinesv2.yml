@@ -39,16 +39,16 @@ stages:
             displayName: 'List Repository Contents'
 
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
-              $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/setup.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
 
           - script: mkdir -p trivy-reports validation-reports
             displayName: "Create Directories for Reports"
           
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
-              $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/setup.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
           
           - script: |
@@ -83,12 +83,12 @@ stages:
           - script: mkdir -p validation-reports
             displayName: "Create Directories for Validation Reports"
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_validate.sh
-              $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_validate.sh
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_validate.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_validate.sh
             displayName: 'Run Terraform Validate'
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_fmt.sh
-              $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_fmt.sh
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_fmt.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_fmt.sh
             displayName: 'Run Terraform Fmt'
 
   # Terraform Plan Stage
@@ -105,11 +105,11 @@ stages:
           - script: mkdir -p plan-reports
             displayName: "Create Directories for Plan Reports"
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_init.sh
-              $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_init.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
           - script: |
-              cd $(System.DefaultWorkingDirectory)/terraform/management
+              cd $(System.DefaultWorkingDirectory)AzureFunctions/terraform/management
               terraform plan -out=tfplan
             displayName: 'Terraform Plan (management)'
 
@@ -130,19 +130,19 @@ stages:
               cacheHitVar: CACHE_RESTORED
 
           - script: |
-              chmod +x scripts/terraform_init.sh
-              ./terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_init.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
 
           - script: |
-              cd $(System.DefaultWorkingDirectory)/terraform/management
+              cd $(System.DefaultWorkingDirectory)AzureFunctions/terraform/management
               terraform apply -auto-approve tfplan
             displayName: 'Terraform Apply (management)'
 
           - ${{ each dir in split(variables.directories, ',') }}:
               - ${{ if ne(variables.dir, 'management') }}:
                 - script: |
-                    cd $(System.DefaultWorkingDirectory)/terraform/${{ dir }}
+                    cd $(System.DefaultWorkingDirectory)AzureFunctions/terraform/${{ dir }}
                     terraform apply -auto-approve tfplan
                   displayName: 'Terraform Apply (${{ dir }})'
 
@@ -163,18 +163,18 @@ stages:
               cacheHitVar: CACHE_RESTORED
 
           - script: |
-              chmod +x scripts/terraform_init.sh
-              ./terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              chmod +x $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_init.sh
+              $(System.DefaultWorkingDirectory)AzureFunctions/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
 
           - script: |
-              cd $(System.DefaultWorkingDirectory)/terraform/management
+              cd $(System.DefaultWorkingDirectory)AzureFunctions/terraform/management
               terraform destroy -auto-approve
             displayName: 'Terraform Destroy (management)'
 
           - ${{ each dir in split(variables.directories, ',') }}:
               - ${{ if ne(variables.dir, 'management') }}:
                 - script: |
-                    cd $(System.DefaultWorkingDirectory)/terraform/${{ dir }}
+                    cd $(System.DefaultWorkingDirectory)AzureFunctions/terraform/${{ dir }}
                     terraform destroy -auto-approve
                   displayName: 'Terraform Destroy (${{ dir }})'
