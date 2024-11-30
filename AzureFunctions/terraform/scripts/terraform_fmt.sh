@@ -1,7 +1,18 @@
 #!/bin/bash
 
-# Format all .tf files
-find $(System.DefaultWorkingDirectory)/AzureFunctions/terraform -name "*.tf" | while read file; do
-  echo "Formatting $file..."
-  terraform fmt -check -diff "$(dirname "$file")" >> trivy-reports/terraform_fmt.log
-done
+# Exit on error
+set -e
+
+# Ensure the working directory exists
+WORKING_DIR="$System.DefaultWorkingDirectory/AzureFunctions/terraform"
+
+if [ ! -d "$WORKING_DIR" ]; then
+  echo "Terraform directory not found: $WORKING_DIR"
+  exit 1
+fi
+
+# Format all Terraform files
+echo "Formatting Terraform files in $WORKING_DIR..."
+find "$WORKING_DIR" -name "*.tf" -exec terraform fmt -recursive {} \;
+
+echo "Terraform formatting completed successfully."

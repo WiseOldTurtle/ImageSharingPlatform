@@ -55,6 +55,7 @@ stages:
               echo "Backend Container: $backendContainerName"
             displayName: "Print Environment Variables"
 
+    # Run Security Scan Stage
   - stage: RunSecurityScan
     displayName: 'Run Security Scans'
     jobs:
@@ -70,6 +71,25 @@ stages:
               trivy -v
             displayName: 'Install Trivy Vulnerability Scanner'
 
+          - script: |
+              mkdir -p trivy-reports
+              # Example Trivy scan (ensure proper file generation)
+              for file in $(find $(System.DefaultWorkingDirectory)/AzureFunctions/terraform -name "*.tf"); do
+                trivy config --severity LOW,MEDIUM,HIGH,CRITICAL \
+                  --format json \
+                  --output trivy-reports/$(basename $file)_scan.json "$file"
+              done
+            displayName: 'Run Trivy Scan'
+
+          # Publish Trivy reports as artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Trivy Reports'
+            inputs:
+              PathtoPublish: 'trivy-reports'
+              ArtifactName: 'TrivyReports'
+              publishLocation: 'Container'
+
+  # Terraform Test Stage
   - stage: TerraformTest
     displayName: 'Test Terraform Code'
     condition: eq(variables['action'], 'Test')
@@ -78,16 +98,27 @@ stages:
         displayName: 'Validate and Format Terraform Code'
         steps:
           - checkout: self
+
           - script: mkdir -p validation-reports
             displayName: "Create Directories for Validation Reports"
+
           - script: |
               chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
-              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
+              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh > validation-reports/validate.log
             displayName: 'Run Terraform Validate'
+
           - script: |
               chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh
-              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh
+              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh > validation-reports/fmt.log
             displayName: 'Run Terraform Fmt'
+
+          # Publish validation reports as artifacts
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Terraform Validation Reports'
+            inputs:
+              PathtoPublish: 'validation-reports'
+              ArtifactName: 'TerraformValidationReports'
+              publishLocation: 'Container'
 
   # Terraform Plan Stage
   - stage: PlanResources
