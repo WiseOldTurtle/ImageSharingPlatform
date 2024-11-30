@@ -20,104 +20,106 @@ parameters:
       - Test
 
 variables:
-  - group: WiseOldTurtleSP  # Variable group containing SP details
-  - group: terraform        # Variable group containing Terraform-related variables
+  - group: WiseOldTurtleSP
+  - group: terraform
   - name: directories
-    value: "management,webapp"  # Directories to loop through
-  - name: action
-    value: ${{ parameters.Action }}
+    value: "management,webapp"
 
 stages:
-  # Terraform Test Stage
-  - stage: TerraformTest
-    displayName: 'Test Terraform Code'
-    condition: and(succeeded(), ne('${{ parameters.Action }}', 'Destroy'))  # Skip if Action is Destroy
+  # Backend Setup
+  - stage: BackendSetup
+    displayName: 'Setup Terraform Backend'
     jobs:
-      - job: ValidateAndFmt
-        displayName: 'Validate and Format Terraform Code'
+      - job: SetupBackend
+        displayName: 'Run Azure CLI Setup for Backend'
         steps:
           - checkout: self
+          - script: |
+              set -e
+              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
+              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
+            displayName: 'Run Azure CLI Setup Script'
 
-          # Loop over directories for validation
-          - ${{ each dir in split(variables.directories, ',') }}:
-              - script: |
-                  echo "Processing directory: $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}"
-                  mkdir -p validation-reports/${{ dir }}
-                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
-                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh > validation-reports/${{ dir }}/terraform-validate.log
-                displayName: 'Run Terraform Validate for ${{ dir }}'
-                env:
-                  directories: $(directories)
-                  WORKING_DIR: $(System.DefaultWorkingDirectory)
-
-          # Publish validation reports as artifacts
+  # Run Pre Req Checks
+  - stage: PredeploymentChecks
+    displayName: 'Pre-deployment Checks'
+    condition: ne('${{ parameters.Action }}', 'Destroy')
+    jobs:
+      - job: SecurityScan
+        displayName: 'Run Trivy Security Scans'
+        steps:
+          - checkout: self
+          - script: |
+              set -e
+              sudo apt-get update
+              sudo apt-get install rpm -y
+              wget https://github.com/aquasecurity/trivy/releases/download/v0.20.0/trivy_0.20.0_Linux-64bit.deb
+              sudo dpkg -i trivy_0.20.0_Linux-64bit.deb
+              trivy -v
+              mkdir -p $(Build.ArtifactStagingDirectory)/trivy-reports
+              for dir in $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/*; do
+                if [ -d "$dir" ]; then
+                  echo "Running Trivy Scan for $dir"
+                  trivy config --severity LOW,MEDIUM,HIGH,CRITICAL --format json \
+                    --output $(Build.ArtifactStagingDirectory)/trivy-reports/$(basename $dir)_scan.json "$dir"
+                fi
+              done
+            displayName: 'Run Trivy Scans'
           - task: PublishBuildArtifacts@1
-            displayName: 'Publish Terraform Validation Reports'
+            displayName: 'Publish Trivy Reports'
             inputs:
-              PathtoPublish: 'validation-reports'
-              ArtifactName: 'TerraformValidationReports'
-              publishLocation: 'Container'
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/trivy-reports'
+              ArtifactName: 'TrivyReports'
 
-  # Terraform Plan Stage
-  - stage: PlanResources
-    displayName: 'Plan Terraform Resources'
-    dependsOn: TerraformTest  # Depends on Test stage
-    condition: and(succeeded(), eq('${{ parameters.Action }}', 'Plan'))  # Run only for Plan action
+  - stage: TerraformOperations
+    displayName: 'Terraform Operations'
+    condition: or(
+      eq(parameters.Action, 'Plan'),
+      eq(parameters.Action, 'Apply'),
+      eq(parameters.Action, 'Destroy'),
+      eq(parameters.Action, 'Test')
+        )
     jobs:
-      - job: PlanTerraform
-        displayName: 'Plan Resources'
+      - job: TerraformJob
+        displayName: 'Run Terraform Operations'
         steps:
           - checkout: self
 
-          # Loop over directories for planning
+          # Install Terraform
+          - task: TerraformInstaller@1
+            displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: latest
+
+          # Make script executable
+          - script: |
+              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_actions.sh
+            displayName: 'Prepare Terraform Actions Script'
+
+          # Loop through directories
           - ${{ each dir in split(variables.directories, ',') }}:
               - script: |
-                  echo "Processing directory: $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}"
-                  mkdir -p plan-reports/${{ dir }}
-                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_init.sh
-                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
-                  cd $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}
-                  terraform plan -out=plan-reports/${{ dir }}/tfplan
-                displayName: 'Run Terraform Plan for ${{ dir }}'
+                  echo "Processing directory: ${{ dir }}"
+                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_actions.sh \
+                    ${{ parameters.Action }} \
+                    ${{ dir }} \
+                    $(System.DefaultWorkingDirectory)/AzureFunctions/terraform
+                displayName: 'Run Terraform ${{ parameters.Action }} for ${{ dir }}'
 
-  # Terraform Apply Stage
-  - stage: ApplyResources
-    displayName: 'Apply Terraform Resources'
-    dependsOn: TerraformTest  # Depends on Test stage
-    condition: and(succeeded(), eq('${{ parameters.Action }}', 'Apply'))  # Run only for Apply action
-    jobs:
-      - job: ApplyTerraform
-        displayName: 'Apply Resources'
-        steps:
-          - checkout: self
+          # Publish Validation Reports (if Test is Run)
+          - ${{ if eq(parameters.Action, 'Test') }}:
+              - task: PublishBuildArtifacts@1
+                displayName: 'Publish Validation Reports'
+                inputs:
+                  PathtoPublish: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/validation-reports'
+                  ArtifactName: 'ValidationReports'
+                  publishLocation: 'Container'
 
-          # Loop over directories for applying
-          - ${{ each dir in split(variables.directories, ',') }}:
-              - script: |
-                  echo "Processing directory: $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}"
-                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_init.sh
-                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
-                  cd $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}
-                  terraform apply -auto-approve plan-reports/${{ dir }}/tfplan
-                displayName: 'Run Terraform Apply for ${{ dir }}'
-
-  # Terraform Destroy Stage
-  - stage: DestroyResources
-    displayName: 'Destroy Terraform Resources'
-    dependsOn: []  # Destroy does not depend on Test or other stages
-    condition: eq('${{ parameters.Action }}', 'Destroy')  # Run only for Destroy action
-    jobs:
-      - job: DestroyTerraform
-        displayName: 'Destroy Resources'
-        steps:
-          - checkout: self
-
-          # Loop over directories for destroying
-          - ${{ each dir in split(variables.directories, ',') }}:
-              - script: |
-                  echo "Processing directory: $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}"
-                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_init.sh
-                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
-                  cd $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}
-                  terraform destroy -auto-approve
-                displayName: 'Run Terraform Destroy for ${{ dir }}'
+          # Publish Plan Reports (if Plan is Run)
+          - ${{ if eq(parameters.Action, 'Plan') }}:
+              - task: PublishBuildArtifacts@1
+                displayName: 'Publish Plan Reports'
+                inputs:
+                  PathtoPublish: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/plan-reports'
+                  ArtifactName: 'PlanReports'
+                  publishLocation: 'Container'
