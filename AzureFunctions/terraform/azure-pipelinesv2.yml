@@ -107,7 +107,8 @@ stages:
             $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh > validation-reports/terraform-validate.log
           displayName: 'Run Terraform Validate Script'
           env:
-            directories: $(directories) # Pass pipeline variable as environment variable
+            directories: $(directories)
+            WORKING_DIR: $(System.DefaultWorkingDirectory)
 
         # Run Terraform Format (Fmt)
         - script: |
@@ -115,7 +116,8 @@ stages:
             $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh > validation-reports/terraform-fmt.log
           displayName: 'Run Terraform Fmt Script'
           env:
-            directories: $(directories) # Pass pipeline variable as environment variable
+            directories: $(directories)
+            WORKING_DIR: $(System.DefaultWorkingDirectory)
 
         # Publish validation reports
         - task: PublishBuildArtifacts@1
