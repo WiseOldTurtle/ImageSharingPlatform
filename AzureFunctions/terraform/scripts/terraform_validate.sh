@@ -3,21 +3,23 @@
 # Exit on error
 set -e
 
-# Check if the directories variable is set
+# Check if directories and WORKING_DIR are set
 if [ -z "$directories" ]; then
   echo "Error: directories variable is not set."
   exit 1
 fi
 
-# Define the root directory
-WORKING_ROOT="$System.DefaultWorkingDirectory/AzureFunctions/terraform"
+if [ -z "$WORKING_DIR" ]; then
+  echo "Error: WORKING_DIR variable is not set."
+  exit 1
+fi
 
 # Split the directories variable into an array
 IFS=',' read -r -a SUBDIRS <<< "$directories"
 
 # Loop through each subdirectory
 for DIR in "${SUBDIRS[@]}"; do
-  FULL_PATH="$WORKING_ROOT/$DIR"
+  FULL_PATH="$WORKING_DIR/AzureFunctions/terraform/$DIR"
 
   # Check if the directory exists
   if [ -d "$FULL_PATH" ]; then

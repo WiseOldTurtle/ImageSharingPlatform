@@ -23,7 +23,7 @@ variables:
   - group: WiseOldTurtleSP
   - group: terraform
   - name: directories
-    value: "management,webapp,networking"
+    value: "management,webapp"
   - name: action
     value: ${{ parameters.Action }}
 
