@@ -35,12 +35,22 @@ stages:
         displayName: 'Run Azure CLI Setup for Backend'
         steps:
           - checkout: self
-          - script: mkdir -p trivy-reports validation-reports
-            displayName: "Create Directories for Reports"
+          - script: ls -R $(System.DefaultWorkingDirectory)
+            displayName: 'List Repository Contents'
+
           - script: |
               chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
               $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
+
+          - script: mkdir -p trivy-reports validation-reports
+            displayName: "Create Directories for Reports"
+          
+          - script: |
+              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
+              $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
+            displayName: 'Run Azure CLI Setup Script'
+          
           - script: |
               echo "Backend Resource Group: $backendRGName"
               echo "Backend Storage Account: $backendStorageAccountName"
