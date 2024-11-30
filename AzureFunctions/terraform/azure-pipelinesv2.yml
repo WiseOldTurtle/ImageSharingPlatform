@@ -12,7 +12,7 @@ parameters:
   - name: Action
     displayName: Action
     type: string
-    default: 'Plan'
+    default: 'Test'
     values:
       - Plan
       - Apply
@@ -20,16 +20,14 @@ parameters:
       - Test
 
 variables:
-  - group: WiseOldTurtleSP  # Variable group containing SP details
-  - group: terraform        # Variable group containing Terraform-related variables
+  - group: WiseOldTurtleSP
+  - group: terraform
   - name: directories
     value: "management,webapp,networking"
   - name: action
     value: ${{ parameters.Action }}
 
-
 stages:
-  # Backend Setup
   - stage: BackendSetup
     displayName: 'Setup Terraform Backend'
     jobs:
@@ -39,19 +37,16 @@ stages:
           - checkout: self
           - script: mkdir -p trivy-reports validation-reports
             displayName: "Create Directories for Reports"
-
           - script: |
-              chmod +x ./terraform/scripts/setup.sh
-              ./terraform/scripts/setup.sh
+              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
+              $(System.DefaultWorkingDirectory)/terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
-
           - script: |
               echo "Backend Resource Group: $backendRGName"
               echo "Backend Storage Account: $backendStorageAccountName"
               echo "Backend Container: $backendContainerName"
             displayName: "Print Environment Variables"
 
-  # Security Scan
   - stage: RunSecurityScan
     displayName: 'Run Security Scans'
     jobs:
@@ -59,43 +54,17 @@ stages:
         displayName: 'Run Trivy Vulnerability Scan on Terraform Files'
         steps:
           - checkout: self
-          - task: CmdLine@2
-            displayName: 'Install Trivy vulnerability scanner'
-            inputs:
-              script: |
-                sudo apt-get update
-                sudo apt-get install rpm -y
-                wget https://github.com/aquasecurity/trivy/releases/download/v0.20.0/trivy_0.20.0_Linux-64bit.deb
-                sudo dpkg -i trivy_0.20.0_Linux-64bit.deb
-                trivy -v
+          - script: |
+              sudo apt-get update
+              sudo apt-get install rpm -y
+              wget https://github.com/aquasecurity/trivy/releases/download/v0.20.0/trivy_0.20.0_Linux-64bit.deb
+              sudo dpkg -i trivy_0.20.0_Linux-64bit.deb
+              trivy -v
+            displayName: 'Install Trivy Vulnerability Scanner'
 
-          - task: CmdLine@2
-            displayName: 'LOW/MED Severity Trivy Scan'
-            inputs:
-              script: |
-                for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
-                  trivy config --severity LOW,MEDIUM --exit-code 0 --format json --output trivy-reports/$(basename $file)_lowmed.json "$file"
-                done
-
-          - task: CmdLine@2
-            displayName: 'HIGH/CRIT Severity Trivy Scan'
-            inputs:
-              script: |
-                for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
-                  trivy config --severity HIGH,CRITICAL --exit-code 0 --format json --output trivy-reports/$(basename $file)_highcrit.json "$file"
-                done
-
-          - task: PublishBuildArtifacts@1
-            displayName: 'Publish Trivy Scan Results'
-            inputs:
-              PathtoPublish: 'trivy-reports'
-              ArtifactName: 'TrivyScanResults'
-              publishLocation: 'Container'
-
-  # Terraform Validation and Testing
   - stage: TerraformTest
     displayName: 'Test Terraform Code'
-    condition: eq('${{ parameters.Action }}', 'Test')
+    condition: eq(variables['action'], 'Test')
     jobs:
       - job: ValidateAndFmt
         displayName: 'Validate and Format Terraform Code'
@@ -103,61 +72,41 @@ stages:
           - checkout: self
           - script: mkdir -p validation-reports
             displayName: "Create Directories for Validation Reports"
-
           - script: |
-              chmod +x ./terraform/scripts/terraform_validate.sh
-              ./terraform/scripts/terraform_validate.sh
+              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_validate.sh
+              $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_validate.sh
             displayName: 'Run Terraform Validate'
-
           - script: |
-              chmod +x ./terraform/scripts/terraform_fmt.sh
-              ./terraform/scripts/terraform_fmt.sh
+              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_fmt.sh
+              $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_fmt.sh
             displayName: 'Run Terraform Fmt'
-
-          - task: PublishBuildArtifacts@1
-            displayName: 'Publish Validation and Fmt Output'
-            inputs:
-              PathtoPublish: 'validation-reports'
-              ArtifactName: 'TerraformValidateFmtReports'
-              publishLocation: 'Container'
 
   # Terraform Plan Stage
   - stage: PlanResources
     displayName: 'Plan Terraform Resources'
-    condition: eq('${{ parameters.Action }}', 'Plan')
+    dependsOn:
+      - TerraformTest  # Depends on the Test stage
+    condition: and(succeeded(), eq(variables['action'], 'Plan'))  # Only run if Test was successful
     jobs:
       - job: PlanTerraform
         displayName: 'Plan Resources'
         steps:
           - checkout: self
-          - task: Cache@2
-            displayName: 'Cache Terraform Plugins'
-            inputs:
-              key: 'terraform|$(TF_WORKING_DIR)'
-              path: $(TF_WORKING_DIR)/.terraform
-              cacheHitVar: CACHE_RESTORED
-
+          - script: mkdir -p plan-reports
+            displayName: "Create Directories for Plan Reports"
           - script: |
-              chmod +x scripts/terraform_init.sh
-              ./terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
+              chmod +x $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_init.sh
+              $(System.DefaultWorkingDirectory)/terraform/scripts/terraform_init.sh $backendRGName $backendStorageAccountName $backendContainerName
             displayName: 'Initialize Terraform Backend'
-
           - script: |
               cd $(System.DefaultWorkingDirectory)/terraform/management
               terraform plan -out=tfplan
             displayName: 'Terraform Plan (management)'
 
-          - ${{ each dir in split(variables.directories, ',') }}:
-              - ${{ if ne(variables.dir, 'management') }}:
-                - script: |
-                    cd $(System.DefaultWorkingDirectory)/terraform/${{ dir }}
-                    terraform plan -out=tfplan
-                  displayName: 'Terraform Plan (${{ dir }})'
-
   # Terraform Apply Stage
   - stage: ApplyResources
     displayName: 'Apply Terraform Resources'
-    condition: eq('${{ parameters.Action }}', 'Apply')
+    condition: eq(variables['action'], 'Apply')
     jobs:
       - job: ApplyTerraform
         displayName: 'Apply Resources'
@@ -190,7 +139,7 @@ stages:
   # Terraform Destroy Stage
   - stage: DestroyResources
     displayName: 'Destroy Terraform Resources'
-    condition: eq('${{ parameters.Action }}', 'Destroy')
+    condition: eq(variables['action'], 'Destroy')
     jobs:
       - job: DestroyTerraform
         displayName: 'Destroy Resources'
