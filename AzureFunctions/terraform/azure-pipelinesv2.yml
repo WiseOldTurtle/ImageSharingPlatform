@@ -94,31 +94,36 @@ stages:
     displayName: 'Test Terraform Code'
     condition: eq(variables['action'], 'Test')
     jobs:
-      - job: ValidateAndFmt
-        displayName: 'Validate and Format Terraform Code'
-        steps:
-          - checkout: self
+    - job: ValidateAndFmt
+      displayName: 'Validate and Format Terraform Code'
+      steps:
+        # Checkout repository
+        - checkout: self
 
-          - script: mkdir -p validation-reports
-            displayName: "Create Directories for Validation Reports"
+        # Run Terraform Validate
+        - script: |
+            mkdir -p validation-reports
+            chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
+            $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh > validation-reports/terraform-validate.log
+          displayName: 'Run Terraform Validate Script'
+          env:
+            directories: $(directories) # Pass pipeline variable as environment variable
 
-          - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
-              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh > validation-reports/validate.log
-            displayName: 'Run Terraform Validate'
+        # Run Terraform Format (Fmt)
+        - script: |
+            chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh
+            $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh > validation-reports/terraform-fmt.log
+          displayName: 'Run Terraform Fmt Script'
+          env:
+            directories: $(directories) # Pass pipeline variable as environment variable
 
-          - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh
-              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh > validation-reports/fmt.log
-            displayName: 'Run Terraform Fmt'
-
-          # Publish validation reports as artifacts
-          - task: PublishBuildArtifacts@1
-            displayName: 'Publish Terraform Validation Reports'
-            inputs:
-              PathtoPublish: 'validation-reports'
-              ArtifactName: 'TerraformValidationReports'
-              publishLocation: 'Container'
+        # Publish validation reports
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Terraform Validation Reports'
+          inputs:
+            PathtoPublish: 'validation-reports'
+            ArtifactName: 'TerraformValidationReports'
+            publishLocation: 'Container'
 
   # Terraform Plan Stage
   - stage: PlanResources
