@@ -92,7 +92,7 @@ stages:
   # Terraform Test Stage
   - stage: TerraformTest
     displayName: 'Test Terraform Code'
-    condition: eq(variables['action'], 'Test')
+    condition: eq('${{ parameters.Action }}', 'Test')
     jobs:
     - job: ValidateAndFmt
       displayName: 'Validate and Format Terraform Code'
@@ -128,11 +128,11 @@ stages:
             publishLocation: 'Container'
 
   # Terraform Plan Stage
-  - stage: PlanResources
+  - stage: TerraformPlan
     displayName: 'Plan Terraform Resources'
     dependsOn:
       - TerraformTest  # Depends on the Test stage
-    condition: and(succeeded(), eq(variables['action'], 'Plan'))  # Only run if Test was successful
+    condition: and(succeeded(), eq('${{ parameters.Action }}', 'Plan'))  # Only run if Test was successful
     jobs:
       - job: PlanTerraform
         displayName: 'Plan Resources'
@@ -152,7 +152,9 @@ stages:
   # Terraform Apply Stage
   - stage: ApplyResources
     displayName: 'Apply Terraform Resources'
-    condition: eq(variables['action'], 'Apply')
+    dependsOn:
+      - TerraformPlan  # Depends on the Test stage
+    condition: and(succeeded(), eq('${{ parameters.Action }}', 'Apply'))  # Only run if Test was successful
     jobs:
       - job: ApplyTerraform
         displayName: 'Apply Resources'
@@ -185,7 +187,7 @@ stages:
   # Terraform Destroy Stage
   - stage: DestroyResources
     displayName: 'Destroy Terraform Resources'
-    condition: eq(variables['action'], 'Destroy')
+    condition: eq('${{ parameters.Action }}', 'Destroy')
     jobs:
       - job: DestroyTerraform
         displayName: 'Destroy Resources'
