@@ -8,6 +8,9 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+steps:
+- checkout: self  # repository checkout
+
 parameters:
   - name: Action
     displayName: Action
@@ -27,6 +30,7 @@ variables:
   - name: action
     value: ${{ parameters.Action }}
 
+
 stages:
   # Backend Setup
   - stage: BackendSetup
@@ -35,10 +39,19 @@ stages:
       - job: SetupBackend
         displayName: 'Run Azure CLI Setup for Backend'
         steps:
+          - script: mkdir -p trivy-reports validation-reports
+            displayName: "Create Directories for Reports"
+
           - script: |
-              chmod +x scripts/setup.sh
+              chmod +x ./terraform/scripts/setup.sh
               ./terraform/scripts/setup.sh
             displayName: 'Run Azure CLI Setup Script'
+
+          - script: |
+              echo "Backend Resource Group: $backendRGName"
+              echo "Backend Storage Account: $backendStorageAccountName"
+              echo "Backend Container: $backendContainerName"
+            displayName: "Print Environment Variables"
 
   # Security Scan
   - stage: RunSecurityScan
@@ -61,7 +74,6 @@ stages:
             displayName: 'LOW/MED Severity Trivy Scan'
             inputs:
               script: |
-                mkdir -p trivy-reports
                 for file in $(find $(System.DefaultWorkingDirectory)/terraform -name "*.tf"); do
                   trivy config --severity LOW,MEDIUM --exit-code 0 --format json --output trivy-reports/$(basename $file)_lowmed.json "$file"
                 done
@@ -89,13 +101,16 @@ stages:
       - job: ValidateAndFmt
         displayName: 'Validate and Format Terraform Code'
         steps:
+          - script: mkdir -p validation-reports
+            displayName: "Create Directories for Validation Reports"
+
           - script: |
-              chmod +x scripts/terraform_validate.sh
+              chmod +x ./terraform/scripts/terraform_validate.sh
               ./terraform/scripts/terraform_validate.sh
             displayName: 'Run Terraform Validate'
 
           - script: |
-              chmod +x scripts/terraform_fmt.sh
+              chmod +x ./terraform/scripts/terraform_fmt.sh
               ./terraform/scripts/terraform_fmt.sh
             displayName: 'Run Terraform Fmt'
 
