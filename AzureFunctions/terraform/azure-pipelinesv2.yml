@@ -50,11 +50,6 @@ stages:
             displayName: "Create Directories for Reports"
           
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
-              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
-            displayName: 'Run Azure CLI Setup Script'
-          
-          - script: |
               echo "Backend Resource Group: $backendRGName"
               echo "Backend Storage Account: $backendStorageAccountName"
               echo "Backend Container: $backendContainerName"
