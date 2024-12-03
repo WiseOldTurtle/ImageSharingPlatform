@@ -130,6 +130,10 @@ stages:
                   GITHUB_ACCESS_TOKEN: $(github_access_token)  # Pass the token as an environment variable
                   directories: $(directories)
                   WORKING_DIR: $(System.DefaultWorkingDirectory)
+                  ARM_CLIENT_ID: $(ARM_CLIENT_ID)              
+                  ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)      
+                  ARM_TENANT_ID: $(ARM_TENANT_ID)              
+                  ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
 
           # Publish Plan Reports (if Plan is Run)
           - ${{ if eq(parameters.Action, 'Plan') }}:
