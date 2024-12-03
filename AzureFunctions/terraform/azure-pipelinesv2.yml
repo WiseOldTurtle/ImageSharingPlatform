@@ -100,7 +100,7 @@ stages:
       eq('${{ parameters.Action }}', 'Plan'),
       eq('${{ parameters.Action }}', 'Apply'),
       eq('${{ parameters.Action }}', 'Destroy')
-    )
+      )
     jobs:
       - job: TerraformJob
         displayName: 'Run Terraform Operations'
