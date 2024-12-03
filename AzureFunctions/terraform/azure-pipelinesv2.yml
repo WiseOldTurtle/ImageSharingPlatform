@@ -117,6 +117,8 @@ stages:
                     ${{ dir }} \
                     $(System.DefaultWorkingDirectory)/AzureFunctions/terraform
                 displayName: 'Run Terraform ${{ parameters.Action }} for ${{ dir }}'
+                env:
+                  GITHUB_ACCESS_TOKEN: $(github_access_token)  # Pass the token as an environment variable
 
           # Publish Plan Reports (if Plan is Run)
           - ${{ if eq(parameters.Action, 'Plan') }}:

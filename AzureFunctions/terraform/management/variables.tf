@@ -13,7 +13,11 @@ variable "location" {
 variable "github_access_token" {
   description = "GitHub Personal Access Token for deployments"
   type        = string
-  sensitive   = true  # Marked sensitive for added security
+  sensitive   = true
+}
+
+provider "github" {
+  token = var.github_access_token
 }
 
 variable "tenant_id" {

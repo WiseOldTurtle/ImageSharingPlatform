@@ -1,6 +1,5 @@
 #!/bin/bash
 # terraform_actions.sh
-# Handles Terraform operations based on provided action and directory
 
 set -e
 
@@ -10,12 +9,19 @@ WORKING_DIR=$3
 
 echo "Running Terraform $ACTION for $DIR"
 
+# Ensure the GitHub token is set
+if [[ -z "$GITHUB_ACCESS_TOKEN" ]]; then
+  echo "Error: GITHUB_ACCESS_TOKEN is not set!"
+  exit 1
+fi
+
 # Initialize Terraform
 terraform -chdir="$WORKING_DIR/$DIR" init \
   -backend-config="resource_group_name=$backendRGName" \
   -backend-config="storage_account_name=$backendStorageAccountName" \
   -backend-config="container_name=$backendContainerName" \
-  -backend-config="key=${DIR}.tfstate"
+  -backend-config="key=${DIR}.tfstate" \
+  -var "github_access_token=$GITHUB_ACCESS_TOKEN"
 
 # Perform action-specific tasks
 case "$ACTION" in
