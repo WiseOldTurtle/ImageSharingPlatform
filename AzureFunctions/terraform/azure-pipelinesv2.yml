@@ -89,6 +89,9 @@ stages:
                   # Terraform Validate
                   $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
                 displayName: 'Run Trivy, Fmt, and Validate for ${{ dir }}'
+                env:
+                  directories: $(directories)
+                  WORKING_DIR: $(System.DefaultWorkingDirectory)
 
           # Publish Reports
           - task: PublishBuildArtifacts@1
@@ -125,6 +128,8 @@ stages:
                 displayName: 'Run Terraform ${{ parameters.Action }} for ${{ dir }}'
                 env:
                   GITHUB_ACCESS_TOKEN: $(github_access_token)  # Pass the token as an environment variable
+                  directories: $(directories)
+                  WORKING_DIR: $(System.DefaultWorkingDirectory)
 
           # Publish Plan Reports (if Plan is Run)
           - ${{ if eq(parameters.Action, 'Plan') }}:
