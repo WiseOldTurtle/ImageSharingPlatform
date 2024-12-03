@@ -42,6 +42,11 @@ This document tracks ongoing tasks and responsibilities for the project.
    - **Status**: In Progress
    - **Notes**: Use Azure DevOps variables for security and better stage separation.
 
+4. **Github Workflow use (potential)**
+   - **Owner**: TBD
+   - **Status**: In Progress
+   - **Notes**: Look to get Github Workflow working.
+
 ---
 
 ## **Completed Tasks**
