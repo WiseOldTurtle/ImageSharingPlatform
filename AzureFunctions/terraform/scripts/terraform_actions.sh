@@ -21,7 +21,9 @@ terraform -chdir="$WORKING_DIR/$DIR" init \
   -backend-config="storage_account_name=$backendStorageAccountName" \
   -backend-config="container_name=$backendContainerName" \
   -backend-config="key=${DIR}.tfstate" \
+  -backend-config="access_key=$ARM_ACCESS_KEY" \
   -var "github_access_token=$GITHUB_ACCESS_TOKEN"
+  
 
 # Perform action-specific tasks
 case "$ACTION" in
