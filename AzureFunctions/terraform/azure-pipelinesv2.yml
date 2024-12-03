@@ -26,100 +26,103 @@ variables:
     value: "management,webapp"
 
 stages:
-  # Backend Setup
+  # Stage: Setup Backend
   - stage: BackendSetup
     displayName: 'Setup Terraform Backend'
+    condition: always()  # Ensure backend setup runs first
     jobs:
       - job: SetupBackend
-        displayName: 'Run Azure CLI Setup for Backend'
+        displayName: 'Run Backend Setup'
         steps:
           - checkout: self
           - script: |
-              set -e
               chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
               $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
-            displayName: 'Run Azure CLI Setup Script'
+            displayName: 'Run Backend Setup Script'
 
-  # Run Pre Req Checks
+  # Stage: Pre-deployment Checks
   - stage: PredeploymentChecks
     displayName: 'Pre-deployment Checks'
-    condition: ne('${{ parameters.Action }}', 'Destroy')
+    dependsOn: BackendSetup
+    condition: ne('${{ parameters.Action }}', 'Destroy')  # Skip for Destroy action
     jobs:
-      - job: SecurityScan
-        displayName: 'Run Trivy Security Scans'
+      - job: ValidateAndScan
+        displayName: 'Run Validation, Formatting, and Security Scans'
         steps:
           - checkout: self
+
+          # Install Trivy and Terraform
           - script: |
-              set -e
               sudo apt-get update
               sudo apt-get install rpm -y
               wget https://github.com/aquasecurity/trivy/releases/download/v0.20.0/trivy_0.20.0_Linux-64bit.deb
               sudo dpkg -i trivy_0.20.0_Linux-64bit.deb
               trivy -v
-              mkdir -p $(Build.ArtifactStagingDirectory)/trivy-reports
-              for dir in $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/*; do
-                if [ -d "$dir" ]; then
-                  echo "Running Trivy Scan for $dir"
+              echo "Installing Terraform..."
+              curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+              echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+              sudo apt-get update && sudo apt-get install terraform
+            displayName: 'Install Tools'
+
+          # Run Trivy, Terraform fmt, and validate for each directory
+          - ${{ each dir in split(variables.directories, ',') }}:
+              - script: |
+                  echo "Processing directory: ${{ dir }}"
+                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh
+                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
+
+                  # Trivy Scan
+                  mkdir -p $(Build.ArtifactStagingDirectory)/trivy-reports
                   trivy config --severity LOW,MEDIUM,HIGH,CRITICAL --format json \
-                    --output $(Build.ArtifactStagingDirectory)/trivy-reports/$(basename $dir)_scan.json "$dir"
-                fi
-              done
-            displayName: 'Run Trivy Scans'
+                    --output $(Build.ArtifactStagingDirectory)/trivy-reports/${{ dir }}_scan.json \
+                    $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/${{ dir }}
+
+                  # Terraform Fmt
+                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_fmt.sh
+
+                  # Terraform Validate
+                  $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_validate.sh
+                displayName: 'Run Trivy, Fmt, and Validate for ${{ dir }}'
+
+          # Publish Reports
           - task: PublishBuildArtifacts@1
-            displayName: 'Publish Trivy Reports'
+            displayName: 'Publish Validation and Scan Reports'
             inputs:
               PathtoPublish: '$(Build.ArtifactStagingDirectory)/trivy-reports'
-              ArtifactName: 'TrivyReports'
+              ArtifactName: 'PredeploymentReports'
+              publishLocation: 'Container'
 
+  # Stage: Terraform Operations
   - stage: TerraformOperations
     displayName: 'Terraform Operations'
+    dependsOn: PredeploymentChecks
     condition: or(
-      eq(parameters.Action, 'Plan'),
-      eq(parameters.Action, 'Apply'),
-      eq(parameters.Action, 'Destroy'),
-      eq(parameters.Action, 'Test')
-        )
+      eq('${{ parameters.Action }}', 'Plan'),
+      eq('${{ parameters.Action }}', 'Apply'),
+      eq('${{ parameters.Action }}', 'Destroy')
+    )
     jobs:
       - job: TerraformJob
         displayName: 'Run Terraform Operations'
         steps:
           - checkout: self
 
-          # Install Terraform
-          - task: TerraformInstaller@1
-            displayName: 'Install Terraform'
-            inputs:
-              terraformVersion: latest
-
-          # Make script executable
-          - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_actions.sh
-            displayName: 'Prepare Terraform Actions Script'
-
-          # Loop through directories
+          # Execute Terraform Actions for Each Directory
           - ${{ each dir in split(variables.directories, ',') }}:
               - script: |
-                  echo "Processing directory: ${{ dir }}"
+                  echo "Running Terraform for ${{ dir }}"
+                  chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_actions.sh
                   $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/terraform_actions.sh \
                     ${{ parameters.Action }} \
                     ${{ dir }} \
                     $(System.DefaultWorkingDirectory)/AzureFunctions/terraform
                 displayName: 'Run Terraform ${{ parameters.Action }} for ${{ dir }}'
 
-          # Publish Validation Reports (if Test is Run)
-          - ${{ if eq(parameters.Action, 'Test') }}:
-              - task: PublishBuildArtifacts@1
-                displayName: 'Publish Validation Reports'
-                inputs:
-                  PathtoPublish: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/validation-reports'
-                  ArtifactName: 'ValidationReports'
-                  publishLocation: 'Container'
-
           # Publish Plan Reports (if Plan is Run)
           - ${{ if eq(parameters.Action, 'Plan') }}:
               - task: PublishBuildArtifacts@1
                 displayName: 'Publish Plan Reports'
                 inputs:
-                  PathtoPublish: '$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/plan-reports'
+                  PathtoPublish: '$(Build.ArtifactStagingDirectory)/plan-reports'
                   ArtifactName: 'PlanReports'
                   publishLocation: 'Container'
