@@ -32,12 +32,18 @@ stages:
     condition: always()  # Ensure backend setup runs first
     jobs:
       - job: SetupBackend
-        displayName: 'Run Backend Setup'
+        displayName: 'Run Azure CLI Setup for Backend'
         steps:
           - checkout: self
           - script: |
-              chmod +x $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
-              $(System.DefaultWorkingDirectory)/AzureFunctions/terraform/scripts/setup.sh
+              export TF_VAR_client_id=$(TF_VAR_client_id)
+              export TF_VAR_client_secret=$(TF_VAR_client_secret)
+              export TF_VAR_tenant_id=$(TF_VAR_tenant_id)
+              export backendRGName=$(backendRGName)
+              export backendStorageAccountName=$(backendStorageAccountName)
+              export backendContainerName=$(backendContainerName)
+              chmod +x ./AzureFunctions/terraform/scripts/setup.sh
+              ./AzureFunctions/terraform/scripts/setup.sh
             displayName: 'Run Backend Setup Script'
 
   # Stage: Pre-deployment Checks
