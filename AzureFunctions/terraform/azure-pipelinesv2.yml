@@ -46,12 +46,6 @@ stages:
               ./AzureFunctions/terraform/scripts/setup.sh
             displayName: 'Run Backend Setup Script'
 
-          - script: |
-              ACCOUNT_KEY=$(az storage account keys list --resource-group $(backendRGName) \
-                --account-name $(backendStorageAccountName) --query '[0].value' -o tsv)
-              echo "##vso[task.setvariable variable=ARM_ACCESS_KEY]$ACCOUNT_KEY"
-            displayName: 'Retrieve Storage Account Key'
-
   # Stage: Pre-deployment Checks
   - stage: PredeploymentChecks
     displayName: 'Pre-deployment Checks'
@@ -62,6 +56,11 @@ stages:
         displayName: 'Run Validation, Formatting, and Security Scans'
         steps:
           - checkout: self
+          # Install Terraform
+          - task: TerraformInstaller@0
+            displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: 'latest'
 
           # Install Trivy and Terraform
           - script: |
@@ -121,6 +120,12 @@ stages:
         displayName: 'Run Terraform Operations'
         steps:
           - checkout: self
+          # Install Terraform
+          - task: TerraformInstaller@0
+            displayName: 'Install Terraform'
+            inputs:
+              terraformVersion: 'latest'
+
 
           # Execute Terraform Actions for Each Directory
           - ${{ each dir in split(variables.directories, ',') }}:
