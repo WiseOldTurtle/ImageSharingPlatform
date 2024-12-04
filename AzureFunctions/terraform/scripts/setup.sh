@@ -42,12 +42,9 @@ if [ -z "$ACCOUNT_KEY" ]; then
   exit 1
 fi
 
-# Debug the key (show masked first 5 characters only)
-echo "Storage Account Key Retrieved: ${ACCOUNT_KEY:0:5}***"
-
 # Export key for Terraform backend
 export ARM_ACCESS_KEY=$ACCOUNT_KEY
-echo "##vso[task.setvariable variable=ARM_ACCESS_KEY]$ACCOUNT_KEY"
+echo "##vso[task.setvariable variable=ACCOUNT_KEY]$ACCOUNT_KEY"
 
 # Create Storage Container
 echo "Creating Storage Container: $backendContainerName..."
