@@ -1,0 +1,192 @@
+# A basic pipeline to deploy the following:
+# Management    - Azure Storage Backend (TF State Management), KV, KV Access Policy.
+# WebApp Stage  - Function App , WebApp, Managed identity (if not using remember to store the key in KV then reference that)
+
+# Set trigger to none for testing, change to main later.
+trigger:
+  - none
+
+parameters:
+  - name: destroyEnabled
+    displayName: "Enable Destroy Stage?"
+    type: string
+    default: "no" # Default is 'no' to prevent accidental execution
+    values:
+      - "yes"
+      - "no"
+
+# ADO Variables used within this YAML are referenced from these 2 groups (stored in ADO Library)
+variables:
+  - group: terraform
+  - group: WiseOldTurtleSP
+
+# Configure Azure Backend
+stages:
+  - stage: SetupBackend
+    jobs:
+      - job: CreateBackendResources
+        displayName: "Create AZ Storage Account and Container"
+        steps:
+          # Authenticate using SP in AZ CLI
+          - script: |
+              az login --service-principal \
+                --username $(TF_VAR_client_id) \
+                --password $(TF_VAR_client_secret) \
+                --tenant $(TF_VAR_tenant_id)
+            displayName: "Azure Login with SP for CLI"
+
+          # Create Resource Group
+          - script: |
+              az group create --name $(backendRGName) --location "UK South"
+            displayName: "Create Resource Group"
+
+          # Create Storage Account with Private Access
+          - script: |
+              az storage account create \
+                --name $(backendStorageAccountName) \
+                --resource-group $(backendRGName) \
+                --location "UK South" \
+                --sku Standard_LRS \
+                --kind StorageV2 \
+                 --access-tier Hot
+            displayName: "Create Storage Account"
+
+          # Retrieve Storage Account Key for container creation
+          - script: |
+              ACCOUNT_KEY=$(az storage account keys list --resource-group $(backendRGName) \
+              --account-name $(backendStorageAccountName) --query '[0].value' -o tsv)
+              echo "##vso[task.setvariable variable=ACCOUNT_KEY]$ACCOUNT_KEY"
+              export ARM_ACCESS_KEY=$ACCOUNT_KEY
+            displayName: "Retrieve Storage Account Key"
+
+          # Create Storage Container using the retrieved key
+          - script: |
+              az storage container create \
+                --name $(backendContainerName) \
+                --account-name $(backendStorageAccountName) \
+                --account-key $(ACCOUNT_KEY)
+            displayName: "Create Storage Container for Terraform Backend"
+
+  # Deploy Management Directory (this contains core resources)
+  - stage: DeployManagement
+    displayName: "Deploy Management Infrastructure"
+    jobs:
+      - job: TerraformManagement
+        displayName: "Run Terraform on Management Directory"
+        steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: "latest"
+            displayName: Install Terraform
+
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              backendServiceArm: "wiseoldturtle-terraform-sp"
+              backendAzureRmResourceGroupName: $(backendRGName)
+              backendAzureRmStorageAccountName: $(backendStorageAccountName)
+              backendAzureRmContainerName: $(backendContainerName)
+              backendAzureRmKey: "management.tfstate"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/management"
+            displayName: "TF Init"
+
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "plan"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/management"
+              environmentServiceNameAzureRM: "wiseoldturtle-terraform-sp"
+            displayName: "TF Plan"
+
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "apply"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/management"
+              environmentServiceNameAzureRM: "wiseoldturtle-terraform-sp"
+            displayName: "TF Apply"
+
+  # Deploy WebApp Directory
+  - stage: DeployWebApp
+    displayName: "Deploy WebApp Infrastructure"
+    jobs:
+      - job: TerraformWebApp
+        displayName: "Run Terraform on WebApp Directory"
+        steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: "latest"
+            displayName: Install Terraform
+
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              backendServiceArm: "wiseoldturtle-terraform-sp"
+              backendAzureRmResourceGroupName: $(backendRGName)
+              backendAzureRmStorageAccountName: $(backendStorageAccountName)
+              backendAzureRmContainerName: $(backendContainerName)
+              backendAzureRmKey: "webapp.tfstate"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/webapp"
+            displayName: "TF Init"
+
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "plan"
+              commandOptions: >
+                -var "github_access_token=$(github_access_token)"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/webapp"
+              environmentServiceNameAzureRM: "wiseoldturtle-terraform-sp"
+            displayName: "TF Plan"
+
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "apply"
+              commandOptions: >
+                -var "github_access_token=$(github_access_token)"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/webapp"
+              environmentServiceNameAzureRM: "wiseoldturtle-terraform-sp"
+            displayName: "TF Apply"
+
+  # Destroy Stage (If you select destroy in pipleine)
+  - stage: DestroyInfrastructure
+    displayName: "Destroy Azure Infrastructure"
+    dependsOn: [DeployWebApp] # Ensure it runs after all previous stages
+    condition: and(succeeded(), eq('${{ parameters.destroyEnabled }}', 'yes')) # Conditional execution
+    jobs:
+      - job: DestroyResources
+        displayName: "Destroy Web App and Function App"
+        steps:
+          # Step 1: Install Terraform
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: "latest"
+            displayName: "Install Terraform"
+
+          # Step 2: Terraform Init for WebApp Directory
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "init"
+              backendServiceArm: "wiseoldturtle-terraform-sp"
+              backendAzureRmResourceGroupName: $(backendRGName)
+              backendAzureRmStorageAccountName: $(backendStorageAccountName)
+              backendAzureRmContainerName: $(backendContainerName)
+              backendAzureRmKey: "webapp.tfstate"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/webapp"
+            displayName: "TF Init for WebApp"
+
+          # Step 3: Terraform Destroy for WebApp
+          - task: TerraformTaskV4@4
+            inputs:
+              provider: "azurerm"
+              command: "destroy"
+              commandOptions: >
+                -var "github_access_token=$(github_access_token)" -auto-approve
+              backendServiceArm: "wiseoldturtle-terraform-sp"
+              workingDirectory: "$(System.DefaultWorkingDirectory)/AzureFunctions/terraform/webapp"
+              environmentServiceNameAzureRM: "wiseoldturtle-terraform-sp"
+            displayName: "TF Destroy for WebApp and FunctionApp"
